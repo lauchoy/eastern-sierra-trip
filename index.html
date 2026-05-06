@@ -25,12 +25,34 @@
           <div id="sidebar-tabs">
             <button class="st ab active" data-st="stops">📍 Stops</button>
             <button class="st" data-st="filters">🔧 Filters</button>
+            <button class="st" data-st="trails">🥾 Trails</button>
           </div>
           <div id="stops-panel" class="sidebar-panel active">
             <div id="stop-list"></div>
           </div>
           <div id="filters-panel" class="sidebar-panel">
             <div id="filter-panel"></div>
+          </div>
+          <div id="trails-panel" class="sidebar-panel">
+            <div id="trail-search-panel">
+              <div class="trail-search-header">
+                <div class="trail-search-title">Search Trails</div>
+                <div class="trail-search-desc">Paste an AllTrails URL or search by name</div>
+              </div>
+              <div class="trail-search-box">
+                <input type="text" id="trail-url-input" placeholder="https://www.alltrails.com/trail/..." />
+                <button id="trail-search-btn" class="trail-search-btn">Load</button>
+              </div>
+              <div id="trail-loading" class="trail-loading" style="display:none">
+                <span class="trail-spinner"></span> Fetching trail data...
+              </div>
+              <div id="trail-error" class="trail-error" style="display:none"></div>
+              <div id="trail-result" class="trail-result" style="display:none"></div>
+              <div id="imported-trails-list">
+                <div class="trail-section-header">Imported Trails</div>
+                <div id="trail-list" class="trail-list"></div>
+              </div>
+            </div>
           </div>
           <div id="info-panel"></div>
         </div>
@@ -39,11 +61,11 @@
 
       <div id="map-container">
         <div id="map"></div>
-        <!-- Clean legend: 2 groups -->
         <div id="legend">
           <div class="legend-item"><span class="legend-dot" style="background:#2D6A4F"></span> Campground</div>
           <div class="legend-item"><span class="legend-dot" style="background:#1B4332"></span> Trailhead</div>
           <div class="legend-item"><span class="legend-line" style="background:#E8671A"></span> Driving route</div>
+          <div class="legend-item"><span class="legend-line" style="background:#8B5CF6"></span> Imported trail</div>
         </div>
       </div>
     </div>

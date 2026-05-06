@@ -1,12 +1,16 @@
 {
   "name": "eastern-sierra-trip",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
-  "description": "Interactive trip map for Eastern Sierra — May 2026",
+  "description": "Interactive trip map for Eastern Sierra + AllTrails trail connector",
   "scripts": {
     "test": "npx playwright test",
     "test:headed": "npx playwright test --headed",
-    "dev": "npx serve . -p 8080 --no-clipboard"
+    "dev": "npx serve . -p 8080 --no-clipboard",
+    "dev:api": "npx vercel dev"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.52.0"

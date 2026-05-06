@@ -91,6 +91,7 @@ async function init() {
   setupDayTabs();
   setupSidebar();
   setupSidebarTabs();
+  setupTrailConnector();
 
   // Select base camp by default
   selectWaypoint('convict_lake');
@@ -406,5 +407,204 @@ function setupSidebarTabs() {
   });
 }
 
-// ========== Start ==========
+// ========== AllTrails Trail Connector ==========
+const importedTrails = {}; // { id: { name, geometry, metadata, layer } }
+let trailColorIndex = 0;
+const TRAIL_COLORS = ['#8B5CF6', '#F59E0B', '#10B981', '#EC4899', '#06B6D4', '#F97316', '#6366F1'];
+
+function setupTrailConnector() {
+  const btn = document.getElementById('trail-search-btn');
+  const input = document.getElementById('trail-url-input');
+  if (!btn || !input) return;
+
+  btn.addEventListener('click', () => {
+    const url = input.value.trim();
+    if (url) searchAndRenderTrail(url);
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      const url = input.value.trim();
+      if (url) searchAndRenderTrail(url);
+    }
+  });
+}
+
+async function searchAndRenderTrail(url) {
+  const loading = document.getElementById('trail-loading');
+  const errorDiv = document.getElementById('trail-error');
+  const resultDiv = document.getElementById('trail-result');
+
+  loading.style.display = 'flex';
+  errorDiv.style.display = 'none';
+  resultDiv.style.display = 'none';
+
+  try {
+    const apiUrl = `/api/alltrails?url=${encodeURIComponent(url)}`;
+    const res = await fetch(apiUrl);
+    const data = await res.json();
+
+    loading.style.display = 'none';
+
+    if (!res.ok || !data.trail) {
+      errorDiv.textContent = data.error || 'Failed to load trail data';
+      errorDiv.style.display = 'block';
+      return;
+    }
+
+    renderImportedTrail(data.trail, data.trail_url);
+  } catch (err) {
+    loading.style.display = 'none';
+    errorDiv.textContent = 'Network error: ' + err.message;
+    errorDiv.style.display = 'block';
+  }
+}
+
+function renderImportedTrail(trailData, sourceUrl) {
+  const resultDiv = document.getElementById('trail-result');
+  const trailList = document.getElementById('trail-list');
+  const trailId = 'imported_' + Date.now();
+
+  const color = TRAIL_COLORS[trailColorIndex % TRAIL_COLORS.length];
+  trailColorIndex++;
+
+  // Store trail data
+  importedTrails[trailId] = {
+    name: trailData.name,
+    geometry: trailData.geometry,
+    metadata: trailData.metadata,
+    sourceUrl,
+    color,
+    visible: true
+  };
+
+  // Render geometry on map
+  let polyline = null;
+  if (trailData.geometry && trailData.geometry.length > 1) {
+    polyline = L.polyline(trailData.geometry, {
+      color,
+      weight: 4,
+      opacity: 0.9,
+      dashArray: null,
+      lineCap: 'round'
+    }).addTo(map);
+
+    // Fit map to show the trail
+    map.fitBounds(polyline.getBounds(), { padding: [50, 50], maxZoom: 13 });
+
+    // Add start marker
+    const start = trailData.geometry[0];
+    L.circleMarker([start[0], start[1]], {
+      radius: 6, color: '#10B981', fillColor: '#10B981', fillOpacity: 1, weight: 2
+    }).addTo(map).bindTooltip(`Start: ${trailData.name}`, {permanent: false});
+  }
+
+  importedTrails[trailId].polyline = polyline;
+
+  // Update result panel in sidebar
+  const m = trailData.metadata || {};
+  resultDiv.style.display = 'block';
+  resultDiv.innerHTML = `
+    <div class="trail-result-inner" style="border-left-color:${color}">
+      <div class="trail-result-name">🥾 ${trailData.name}</div>
+      <div class="trail-result-stats">
+        ${m.route_type ? '<span class="tr-stat">🔄 ' + m.route_type + '</span>' : ''}
+        ${m.difficulty ? '<span class="tr-stat">📊 ' + m.difficulty + '</span>' : ''}
+        ${m.rating ? '<span class="tr-stat">⭐ ' + m.rating + '/5</span>' : ''}
+        ${m.length_mi ? '<span class="tr-stat">📏 ' + m.length_mi + ' mi</span>' : ''}
+        ${m.elevation_gain_ft ? '<span class="tr-stat">⛰️ ' + m.elevation_gain_ft + ' ft</span>' : ''}
+        ${m.location ? '<span class="tr-stat">📍 ' + m.location + '</span>' : ''}
+      </div>
+      ${m.description ? '<div class="trail-result-desc">' + m.description.substring(0, 200) + (m.description.length > 200 ? '...' : '') + '</div>' : ''}
+      <div class="trail-result-actions">
+        <button class="tr-action btn-remove" data-id="${trailId}">Remove</button>
+        <button class="tr-action btn-focus" data-id="${trailId}">Focus</button>
+      </div>
+    </div>
+  `;
+
+  // Wire result actions
+  resultDiv.querySelector('.btn-remove')?.addEventListener('click', () => removeTrail(trailId));
+  resultDiv.querySelector('.btn-focus')?.addEventListener('click', () => focusTrail(trailId));
+
+  // Add to trail list
+  const listItem = document.createElement('div');
+  listItem.className = 'trail-list-item';
+  listItem.dataset.trailId = trailId;
+  listItem.innerHTML = `
+    <span class="trail-list-color" style="background:${color}"></span>
+    <span class="trail-list-name">${trailData.name.substring(0, 40)}</span>
+    <button class="trail-list-remove" data-id="${trailId}">✕</button>
+  `;
+  listItem.addEventListener('click', (e) => {
+    if (e.target.tagName === 'BUTTON') return;
+    selectImportedTrail(trailId);
+  });
+  listItem.querySelector('.trail-list-remove')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    removeTrail(trailId);
+  });
+  trailList.prepend(listItem);
+
+  // Clear input
+  document.getElementById('trail-url-input').value = '';
+}
+
+function selectImportedTrail(trailId) {
+  const trail = importedTrails[trailId];
+  if (!trail) return;
+
+  if (trail.polyline) {
+    map.fitBounds(trail.polyline.getBounds(), { padding: [50, 50], maxZoom: 13 });
+  }
+
+  // Re-render the result panel
+  const resultDiv = document.getElementById('trail-result');
+  const m = trail.metadata || {};
+  resultDiv.style.display = 'block';
+  resultDiv.innerHTML = `
+    <div class="trail-result-inner" style="border-left-color:${trail.color}">
+      <div class="trail-result-name">🥾 ${trail.name}</div>
+      <div class="trail-result-stats">
+        ${m.route_type ? '<span class="tr-stat">🔄 ' + m.route_type + '</span>' : ''}
+        ${m.difficulty ? '<span class="tr-stat">📊 ' + m.difficulty + '</span>' : ''}
+        ${m.rating ? '<span class="tr-stat">⭐ ' + m.rating + '/5</span>' : ''}
+        ${m.length_mi ? '<span class="tr-stat">📏 ' + m.length_mi + ' mi</span>' : ''}
+        ${m.elevation_gain_ft ? '<span class="tr-stat">⛰️ ' + m.elevation_gain_ft + ' ft</span>' : ''}
+        ${m.description ? '<div class="trail-result-desc">' + m.description.substring(0, 200) + (m.description.length > 200 ? '...' : '') + '</div>' : ''}
+      </div>
+      <div class="trail-result-actions">
+        <button class="tr-action btn-remove" data-id="${trailId}">Remove</button>
+        <button class="tr-action btn-focus" data-id="${trailId}">Focus</button>
+      </div>
+    </div>
+  `;
+  resultDiv.querySelector('.btn-remove')?.addEventListener('click', () => removeTrail(trailId));
+  resultDiv.querySelector('.btn-focus')?.addEventListener('click', () => focusTrail(trailId));
+}
+
+function focusTrail(trailId) {
+  const trail = importedTrails[trailId];
+  if (!trail?.polyline) return;
+  map.fitBounds(trail.polyline.getBounds(), { padding: [50, 50], maxZoom: 14 });
+}
+
+function removeTrail(trailId) {
+  const trail = importedTrails[trailId];
+  if (!trail) return;
+
+  if (trail.polyline) map.removeLayer(trail.polyline);
+  if (trail.startMarker) map.removeLayer(trail.startMarker);
+
+  delete importedTrails[trailId];
+
+  // Remove from list UI
+  document.querySelector(`.trail-list-item[data-trail-id="${trailId}"]`)?.remove();
+
+  // Clear result panel if showing this trail
+  const resultDiv = document.getElementById('trail-result');
+  if (resultDiv.dataset.trailId === trailId) {
+    resultDiv.style.display = 'none';
+  }
+}
 document.addEventListener('DOMContentLoaded', init);

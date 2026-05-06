@@ -621,3 +621,234 @@ html, body {
   border-top: 3px dashed #E8671A;
   background: transparent;
 }
+
+/* ========== Trail Connector UI ========== */
+#trail-search-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.trail-search-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.trail-search-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.trail-search-desc {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.trail-search-box {
+  display: flex;
+  gap: 6px;
+}
+
+#trail-url-input {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 0.82rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+#trail-url-input:focus {
+  border-color: var(--accent);
+}
+
+#trail-url-input::placeholder {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.trail-search-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.trail-search-btn:hover {
+  background: var(--accent-hover);
+}
+
+.trail-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  padding: 8px 0;
+}
+
+.trail-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: trail-spin 0.6s linear infinite;
+}
+
+@keyframes trail-spin {
+  to { transform: rotate(360deg); }
+}
+
+.trail-error {
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #450a0a;
+  color: #fca5a5;
+  font-size: 0.82rem;
+  border-left: 3px solid var(--danger);
+}
+
+.trail-result-inner {
+  border-left: 4px solid #8B5CF6;
+  padding: 12px;
+  background: var(--surface-2);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.trail-result-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.trail-result-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tr-stat {
+  font-size: 0.72rem;
+  padding: 2px 6px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 4px;
+  color: var(--text-muted);
+}
+
+.trail-result-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.trail-result-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.tr-action {
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-remove:hover {
+  background: #450a0a;
+  border-color: var(--danger);
+  color: #fca5a5;
+}
+
+.btn-focus:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.trail-section-header {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  font-weight: 600;
+  padding: 8px 0 4px;
+}
+
+.trail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.trail-list-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  transition: background 0.15s;
+}
+
+.trail-list-item:hover {
+  background: var(--surface-2);
+}
+
+.trail-list-color {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.trail-list-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trail-list-remove {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 3px;
+  font-size: 0.7rem;
+}
+
+.trail-list-remove:hover {
+  background: #450a0a;
+  color: #fca5a5;
+}
+
+/* ========== Mobile adjustments ========== */
+@media (max-width: 768px) {
+  #sidebat-tabs .st { font-size: 0.72rem; padding: 5px 6px; }
+  .trail-result-name { font-size: 0.85rem; }
+  #trail-url-input { font-size: 0.78rem; }
+}

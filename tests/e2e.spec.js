@@ -63,9 +63,9 @@ test.describe('Eastern Sierra Trip Map', () => {
     const legend = page.locator('#legend');
     await expect(legend).toBeVisible();
 
-    // Check all legend items (reduced from 6 to 3 for cleaner legend)
+    // Check all legend items (4: Campground, Trailhead, Driving route, Imported trail)
     const items = legend.locator('.legend-item');
-    await expect(items).toHaveCount(3);
+    await expect(items).toHaveCount(4);
   });
 
   // ========== MARKERS ==========
@@ -235,11 +235,12 @@ test.describe('Eastern Sierra Trip Map', () => {
 
   // ========== NEW FEATURES: FILTERS & LAYER SWITCHER ==========
 
-  test('sidebar has Stops and Filters tabs', async ({ page }) => {
+  test('sidebar has Stops, Filters and Trails tabs', async ({ page }) => {
     const tabs = page.locator('#sidebar-tabs .st');
-    await expect(tabs).toHaveCount(2);
+    await expect(tabs).toHaveCount(3);
     await expect(tabs.nth(0)).toContainText('Stops');
     await expect(tabs.nth(1)).toContainText('Filters');
+    await expect(tabs.nth(2)).toContainText('Trails');
   });
 
   test('filters tab shows filter panel with type and route sections', async ({ page }) => {
@@ -301,5 +302,19 @@ test.describe('Eastern Sierra Trip Map', () => {
     // Click again to expand
     await header.click();
     await expect(section).not.toHaveClass(/collapsed/);
+  });
+
+  // ========== TRAIL CONNECTOR ==========
+
+  test('trail search panel has input and button', async ({ page }) => {
+    await page.locator('#sidebar-tabs .st').nth(2).click();
+    await expect(page.locator('#trail-url-input')).toBeVisible();
+    await expect(page.locator('#trail-search-btn')).toBeVisible();
+  });
+
+  test('trail list section exists in trails panel', async ({ page }) => {
+    await page.locator('#sidebar-tabs .st').nth(2).click();
+    await expect(page.locator('#imported-trails-list')).toBeVisible();
+    await expect(page.locator('.trail-section-header')).toContainText('Imported Trails');
   });
 });
