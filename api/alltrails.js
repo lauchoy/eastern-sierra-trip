@@ -123,60 +123,44 @@ async function queryOverpass(trailName, centerLat = null, centerLng = null) {
     bbox = `(${centerLat - d},${centerLng - d},${centerLat + d},${centerLng + d})`;
   }
 
-  // Extract core name: remove "Trail", "to", trailing location words, punctuation
-  let coreName = trailName
-    .replace(/\s*Trail$/i, '')
-    .replace(/\s*to\s.*$/i, '')
-    .replace(/[^\w\s]/g, '')
-    .trim()
-    .substring(0, 25);
-
-  if (coreName.length < 4) coreName = trailName.substring(0, 25).replace(/[^\w\s]/g, '').trim();
-
-  const queries = [
-    // 1. Exact match on hiking route relation
-    `[out:json][timeout:10];relation["route"="hiking"]["name"="${trailName.replace(/['"]/g, '')}"]${bbox};out geom;`,
-    // 2. Contains core name
-    `[out:json][timeout:10];relation["route"="hiking"]["name"~"${coreName}"i]${bbox};out geom;`,
-    // 3. Contains first 3 words of trail name
-    `[out:json][timeout:10];relation["route"="hiking"](if:length()>100)${bbox};(._;way(r)(if:length()>100););out geom;`,
+  // Extract core name for matching
+  let names = [
+    trailName,                                                    // full name
+    trailName.replace(/\s*Trail$/i, ''),                          // remove "Trail" suffix
+    trailName.replace(/\s*Trail$/i, '') + ' Trail',               // add "Trail" suffix
+    trailName.replace(/\s*to\s.*$/i, '').trim(),                  // remove "to ..."
+    trailName.replace(/\s*to\s.*$/i, '').trim() + ' Trail',       // add "Trail"
   ];
-
-  // Also search for individual way segments by name
-  const wayQuery = `[out:json][timeout:10];way["name"~"${coreName}"i]["highway"="path"](if:length()>200)${bbox};out geom;`;
+  // De-duplicate
+  names = [...new Set(names.map(n => n.replace(/['"]/g, '').substring(0, 50)))];
 
   let allCoords = [];
 
-  for (const query of queries) {
+  for (const name of names) {
+    // Query 1: Exact match on relation, recurse for way geometry
+    const relQuery = `[out:json][timeout:8];relation["route"="hiking"]["name"="${name}"]${bbox};out body;>;out geom;`;
     try {
       const res = await fetch('https://overpass-api.de/api/interpreter', {
         method: 'POST',
-        body: `data=${encodeURIComponent(query)}`,
+        body: `data=${encodeURIComponent(relQuery)}`,
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
       });
       const data = await res.json();
-      if (!data.elements?.length) continue;
-
-      for (const el of data.elements) {
-        const coords = [];
-        if (el.geometry) {
-          coords.push(...el.geometry.map(p => [p.lat, p.lon]));
-        } else if (el.members) {
-          // Relations have members — collect all geometry
-          for (const m of el.members) {
-            if (m.geometry) coords.push(...m.geometry.map(p => [p.lat, p.lon]));
+      if (data.elements?.length) {
+        for (const el of data.elements) {
+          if (el.type === 'way' && el.geometry?.length) {
+            const coords = el.geometry.map(p => [p.lat, p.lon]);
+            if (coords.length > allCoords.length) {
+              allCoords = coords;
+            }
           }
         }
-        if (coords.length > allCoords.length) {
-          allCoords = coords;
-        }
+        if (allCoords.length > 10) return { coords: allCoords };
       }
-      if (allCoords.length > 10) break;
     } catch {}
-  }
 
-  // If relation search failed, try individual ways
-  if (allCoords.length < 5) {
+    // Query 2: Direct way search by name
+    const wayQuery = `[out:json][timeout:8];way["name"="${name}"]["highway"="path"](if:length()>100)${bbox};out geom;`;
     try {
       const res = await fetch('https://overpass-api.de/api/interpreter', {
         method: 'POST',
@@ -185,20 +169,40 @@ async function queryOverpass(trailName, centerLat = null, centerLng = null) {
       });
       const data = await res.json();
       if (data.elements?.length) {
-        const el = data.elements.reduce((a, b) => {
-          const aLen = a.geometry?.length || 0;
-          const bLen = b.geometry?.length || 0;
-          return aLen > bLen ? a : b;
-        });
-        if (el.geometry) {
-          allCoords = el.geometry.map(p => [p.lat, p.lon]);
+        for (const el of data.elements) {
+          if (el.geometry?.length) {
+            allCoords = el.geometry.map(p => [p.lat, p.lon]);
+          }
         }
+        if (allCoords.length > 10) return { coords: allCoords };
       }
     } catch {}
   }
 
-  if (allCoords.length < 5) return null;
-  return { coords: allCoords };
+  // Query 3: Broad search for any long hiking path in the area
+  const broadQuery = `[out:json][timeout:8];way["highway"="path"](if:length()>500)${bbox};out geom;`;
+  try {
+    const res = await fetch('https://overpass-api.de/api/interpreter', {
+      method: 'POST',
+      body: `data=${encodeURIComponent(broadQuery)}`,
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    });
+    const data = await res.json();
+    if (data.elements?.length) {
+      // Return the longest way
+      let best = null;
+      for (const el of data.elements) {
+        if (el.geometry?.length > (best?.geometry?.length || 0)) {
+          best = el;
+        }
+      }
+      if (best?.geometry?.length > 20) {
+        allCoords = best.geometry.map(p => [p.lat, p.lon]);
+      }
+    }
+  } catch {}
+
+  return allCoords.length > 5 ? { coords: allCoords } : null;
 }
 
 // ========== Main handler ==========
