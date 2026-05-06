@@ -197,92 +197,81 @@ html, body {
   white-space: nowrap;
 }
 
-/* ========== Info Panel ========== */
+/* ========== Info Panel (floating on map) ========== */
 #info-panel {
-  background: var(--surface-2);
-  border-radius: var(--radius);
-  padding: 16px;
+  position: absolute;
+  bottom: 60px;
+  left: 12px;
+  right: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
   display: none;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+  z-index: 1500;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  max-height: 40vh;
+  overflow-y: auto;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 #info-panel.visible { display: flex; }
 
-.info-header {
+#info-panel .info-header {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
-
-.info-icon { font-size: 1.3rem; }
-.info-title { font-size: 1.05rem; font-weight: 600; }
-.info-subtitle { font-size: 0.8rem; color: var(--text-muted); }
-
-.info-section {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.info-section-header {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+#info-panel .info-icon { font-size: 1.4rem; }
+#info-panel .info-title { font-size: 1rem; font-weight: 600; }
+#info-panel .info-subtitle { font-size: 0.78rem; color: var(--text-muted); }
+#info-panel .info-close {
+  margin-left: auto;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: var(--surface-2);
   color: var(--text-muted);
-  font-weight: 600;
-}
-
-.info-notes { font-size: 0.88rem; line-height: 1.5; color: var(--text); }
-
-.info-warnings {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.info-warning {
-  padding: 6px 10px;
-  border-radius: 4px;
-  font-size: 0.82rem;
-  background: var(--warning-bg);
-  border-left: 3px solid var(--warning);
-  color: #fde68a;
-  line-height: 1.4;
-}
-
-.info-warning.hard-closure {
-  background: #450a0a;
-  border-left-color: var(--danger);
-  color: #fca5a5;
-}
-
-.info-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.info-link {
-  display: inline-block;
-  padding: 5px 12px;
-  background: var(--accent);
-  color: #fff;
-  text-decoration: none;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  transition: background 0.15s;
-}
-
-.info-link:hover { background: var(--accent-hover); }
-
-.info-drive {
-  font-size: 0.82rem;
-  color: var(--text-muted);
+  border-radius: 50%;
+  font-size: 1rem;
+  cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  flex-shrink: 0;
+}
+#info-panel .info-close:hover { background: var(--danger); color: #fff; }
+#info-panel .info-section { display: flex; flex-direction: column; gap: 4px; }
+#info-panel .info-section-header { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); font-weight: 600; }
+#info-panel .info-notes { font-size: 0.85rem; line-height: 1.5; }
+#info-panel .info-warnings { display: flex; flex-direction: column; gap: 3px; }
+#info-panel .info-warning { padding: 5px 10px; border-radius: 4px; font-size: 0.8rem; background: var(--warning-bg); border-left: 3px solid var(--warning); color: #fde68a; line-height: 1.4; }
+#info-panel .info-warning.hard-closure { background: #450a0a; border-left-color: var(--danger); color: #fca5a5; }
+#info-panel .info-links { display: flex; flex-wrap: wrap; gap: 5px; }
+#info-panel .info-link { display: inline-block; padding: 6px 14px; background: var(--accent); color: #fff; text-decoration: none; border-radius: 6px; font-size: 0.8rem; font-weight: 500; transition: background 0.15s; min-height: 36px; display: flex; align-items: center; }
+#info-panel .info-link:hover { background: var(--accent-hover); }
+#info-panel .info-drive { font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 4px; }
+
+/* ========== Sidebar drag handle ========== */
+.sidebar-drag-handle {
+  display: none;
+  padding: 8px 0 4px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.sidebar-handle-bar {
+  display: block;
+  width: 36px;
+  height: 4px;
+  border-radius: 4px;
+  background: var(--text-muted);
+  margin: 0 auto;
+  opacity: 0.5;
 }
 
 /* ========== Map ========== */
@@ -335,8 +324,22 @@ html, body {
 
 /* ========== Mobile ========== */
 @media (max-width: 768px) {
-  :root { --sidebar-w: 100%; }
+  :root {
+    --sidebar-w: 100%;
+    --header-h: 52px;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-top: env(safe-area-inset-top, 0px);
+  }
 
+  /* === Header === */
+  #header {
+    height: calc(var(--header-h) + var(--safe-top));
+    padding: var(--safe-top) 12px 0;
+  }
+  #header h1 { font-size: 0.85rem; }
+  .tab { padding: 5px 10px; font-size: 0.72rem; min-height: 32px; }
+
+  /* === Sidebar bottom sheet === */
   #sidebar {
     position: fixed;
     bottom: 0;
@@ -346,19 +349,77 @@ html, body {
     min-width: unset;
     border-right: none;
     border-top: 1px solid var(--border);
-    border-radius: 12px 12px 0 0;
+    border-radius: 14px 14px 0 0;
     z-index: 2000;
     margin-left: 0 !important;
     opacity: 1 !important;
     pointer-events: auto;
-    transition: transform 0.3s ease;
+    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
     transform: translateY(0);
+    box-shadow: 0 -8px 30px rgba(0,0,0,0.4);
+    padding-bottom: var(--safe-bottom);
   }
 
   #sidebar.closed {
-    transform: translateY(calc(100% - 44px));
+    transform: translateY(calc(100% - 48px));
   }
 
+  /* Drag handle visible on mobile */
+  .sidebar-drag-handle { display: flex; justify-content: center; }
+
+  #sidebar-content {
+    padding: 4px 12px max(12px, var(--safe-bottom));
+    gap: 8px;
+  }
+
+  /* Sidebar tabs — bigger touch targets */
+  #sidebar-tabs {
+    margin-bottom: 6px;
+    padding-bottom: 6px;
+  }
+  #sidebar-tabs .st {
+    font-size: 0.72rem;
+    padding: 8px 4px;
+    min-height: 40px;
+  }
+  /* fixed: #sidebar-tabs .st already set above */
+
+  /* === Sidebar panels === */
+  .stop-list-item {
+    padding: 10px 10px;
+    min-height: 44px;
+    font-size: 0.85rem;
+  }
+  .stop-list-header { padding: 6px 0 2px; }
+
+  /* === Filter panel — bigger touch targets === */
+  .filter-section-header { padding: 12px; font-size: 0.8rem; min-height: 44px; }
+  .filter-item { padding: 6px 0; min-height: 40px; font-size: 0.82rem; }
+  .filter-item input[type="checkbox"] { width: 20px; height: 20px; min-width: 20px; }
+
+  /* === Trail panel === */
+  .trail-search-title { font-size: 0.85rem; }
+  .trail-search-desc { font-size: 0.72rem; }
+  #trail-url-input { font-size: 0.82rem; padding: 10px 12px; min-height: 44px; }
+  .trail-search-btn { padding: 10px 18px; font-size: 0.82rem; min-height: 44px; }
+  .trail-result-name { font-size: 0.85rem; }
+  .trail-result-inner { padding: 10px; }
+  .tr-action { padding: 6px 14px; font-size: 0.78rem; min-height: 36px; }
+  .trail-list-item { padding: 8px 8px; min-height: 40px; }
+
+  /* === Info panel on mobile — overlay on map === */
+  #info-panel {
+    bottom: max(60px, calc(45vh + 16px));
+    left: 8px;
+    right: 8px;
+    padding: 12px 14px;
+    padding-right: 4px;
+    z-index: 1500;
+  }
+
+  #info-panel .info-close { width: 36px; height: 36px; }
+
+  /* === Sidebar toggle on mobile === */
   #sidebar-toggle {
     left: auto;
     right: 12px;
@@ -367,20 +428,55 @@ html, body {
     border: 1px solid var(--border);
     border-radius: 6px;
     transition: none;
+    background: var(--surface);
+    width: 40px;
+    height: 40px;
   }
+  #sidebar-toggle:hover { background: var(--accent); color: #fff; }
 
-  #sidebar.closed ~ #sidebar-toggle {
-    left: auto;
-    right: 12px;
-  }
-
-  #header h1 { font-size: 0.95rem; }
-  .tab { padding: 5px 12px; font-size: 0.78rem; }
-
+  /* === Legend on mobile === */
   #legend {
-    bottom: calc(45vh + 12px);
-    font-size: 0.7rem;
-    padding: 8px 10px;
+    bottom: max(55px, calc(45vh + 16px));
+    right: 8px;
+    font-size: 0.65rem;
+    padding: 6px 8px;
+    gap: 3px;
+  }
+  .legend-dot { width: 8px; height: 8px; }
+  .legend-line { width: 16px; height: 3px; }
+
+  /* === Map controls — bigger touch targets === */
+  .leaflet-control-zoom a {
+    width: 40px !important;
+    height: 40px !important;
+    line-height: 40px !important;
+    font-size: 1rem !important;
+  }
+
+  .leaflet-control-layers {
+    font-size: 0.8rem !important;
+  }
+  .leaflet-control-layers-toggle {
+    width: 40px !important;
+    height: 40px !important;
+    background-size: 22px 22px !important;
+  }
+
+  /* === Scale control === */
+  .leaflet-control-scale {
+    margin-left: 8px;
+    margin-bottom: max(8px, var(--safe-bottom));
+  }
+
+  /* === Leaflet popup improvements === */
+  .leaflet-popup-content {
+    font-size: 0.82rem !important;
+    margin: 10px 14px !important;
+  }
+
+  /* === Main layout fix for safe area === */
+  #main {
+    padding-top: 0;
   }
 }
 
@@ -846,9 +942,4 @@ html, body {
   color: #fca5a5;
 }
 
-/* ========== Mobile adjustments ========== */
-@media (max-width: 768px) {
-  #sidebat-tabs .st { font-size: 0.72rem; padding: 5px 6px; }
-  .trail-result-name { font-size: 0.85rem; }
-  #trail-url-input { font-size: 0.78rem; }
-}
+

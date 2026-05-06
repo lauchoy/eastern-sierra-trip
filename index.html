@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Eastern Sierra — May 2026</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
@@ -21,6 +23,7 @@
 
     <div id="main">
       <aside id="sidebar" class="open">
+        <div class="sidebar-drag-handle"><span class="sidebar-handle-bar"></span></div>
         <div id="sidebar-content">
           <div id="sidebar-tabs">
             <button class="st ab active" data-st="stops">📍 Stops</button>
@@ -54,12 +57,12 @@
               </div>
             </div>
           </div>
-          <div id="info-panel"></div>
         </div>
       </aside>
       <button id="sidebar-toggle" aria-label="Toggle sidebar">←</button>
 
       <div id="map-container">
+        <div id="info-panel"></div>
         <div id="map"></div>
         <div id="legend">
           <div class="legend-item"><span class="legend-dot" style="background:#2D6A4F"></span> Campground</div>

@@ -41,6 +41,9 @@ let tripData, map, markers = {}, markerGroups = {}, routeLayers = {};
 let activeDay = 'all', activeWaypointId = null, activeFilters = {};
 let baseTileLayer;
 
+// ========== Mobile Helpers ==========
+function isMobile() { return window.innerWidth <= 768; }
+
 // ========== Init ==========
 async function init() {
   try {
@@ -273,6 +276,14 @@ function selectWaypoint(id) {
   updateInfoPanel(wp);
   updateStopListHighlight(id);
   map.setView([wp.lat, wp.lng], map.getZoom(), { animate: true });
+  // On mobile: auto-close sidebar so info panel is visible
+  if (isMobile()) {
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar && !sidebar.classList.contains('closed')) {
+      sidebar.classList.add('closed');
+      document.getElementById('sidebar-toggle').textContent = '≡';
+    }
+  }
 }
 
 // ========== Info Panel ==========
@@ -293,6 +304,7 @@ function updateInfoPanel(wp) {
         <div class="info-title">${wp.name}</div>
         <div class="info-subtitle">${typeLabel} · ${dayLabel}${elev ? ' · ' + elev : ''}</div>
       </div>
+      <button class="info-close" onclick="hideInfoPanel()" aria-label="Close">✕</button>
     </div>`;
 
   if (wp.notes) {
@@ -321,6 +333,11 @@ function updateInfoPanel(wp) {
 
   if (drive) html += `<div class="info-drive">${drive}</div>`;
   panel.innerHTML = html;
+}
+
+// ========== Hide Info Panel ==========
+function hideInfoPanel() {
+  document.getElementById('info-panel').classList.remove('visible');
 }
 
 // ========== Stop List ==========
@@ -387,10 +404,56 @@ function setupSidebar() {
   const toggle = document.getElementById('sidebar-toggle');
   const sidebar = document.getElementById('sidebar');
   toggle.addEventListener('click', () => {
+    const wasClosed = sidebar.classList.contains('closed');
     sidebar.classList.toggle('closed');
-    toggle.textContent = sidebar.classList.contains('closed') ? '→' : '←';
+    toggle.textContent = sidebar.classList.contains('closed') ? '≡' : '✕';
+    // On mobile: hide info panel when opening sidebar
+    if (isMobile() && sidebar.classList.contains('closed') === false) {
+      hideInfoPanel();
+    }
     setTimeout(() => map.invalidateSize(), 350);
   });
+
+  // ========== Mobile: Bottom Sheet Touch Drag ==========
+  let startY = 0, currentY = 0, isDragging = false;
+  const dragHandle = sidebar.querySelector('.sidebar-drag-handle');
+  if (dragHandle) {
+    dragHandle.addEventListener('touchstart', (e) => {
+      startY = e.touches[0].clientY;
+      isDragging = true;
+      sidebar.style.transition = 'none';
+    }, { passive: true });
+
+    document.addEventListener('touchmove', (e) => {
+      if (!isDragging) return;
+      currentY = e.touches[0].clientY;
+      const delta = currentY - startY;
+      if (delta > 0) {
+        const sheetH = sidebar.offsetHeight;
+        const pct = Math.min(delta / sheetH, 0.9);
+        sidebar.style.transform = `translateY(${pct * 100}%)`;
+      }
+    }, { passive: true });
+
+    document.addEventListener('touchend', () => {
+      if (!isDragging) return;
+      isDragging = false;
+      sidebar.style.transition = 'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)';
+      const delta = currentY - startY;
+      const sheetH = sidebar.offsetHeight;
+      if (delta > sheetH * 0.25) {
+        // Close the sheet
+        sidebar.classList.add('closed');
+        toggle.textContent = '≡';
+      } else {
+        // Snap back open
+        sidebar.style.transform = '';
+        sidebar.classList.remove('closed');
+        toggle.textContent = '✕';
+      }
+      startY = 0; currentY = 0;
+    }, { passive: true });
+  }
 }
 
 // ========== Sidebar Tabs (Stops / Filters) ==========
