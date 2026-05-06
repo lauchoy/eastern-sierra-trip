@@ -1,0 +1,153 @@
+{
+  "waypoints": [
+    {
+      "id": "convict_lake",
+      "name": "Convict Lake Campground",
+      "type": "campground",
+      "day": "base",
+      "lat": 37.5903,
+      "lng": -118.8548,
+      "elevation_ft": 7500,
+      "notes": "Base camp both nights. 48 reservable sites via Recreation.gov. Flush toilets, potable water, bear lockers. Paid showers at Convict Lake Resort. $35/night.",
+      "warnings": [],
+      "links": {
+        "reservation": "https://www.recreation.gov/camping/campgrounds/234311"
+      },
+      "drive_from_base_min": 0
+    },
+    {
+      "id": "brees_lookout",
+      "name": "Brees Lookout",
+      "type": "geo_stop",
+      "day": "1",
+      "lat": 37.6629,
+      "lng": -118.8271,
+      "elevation_ft": 7040,
+      "notes": "Interpretive overlook at Hot Creek Geological Site. Panoramic views of Hot Creek canyon, steaming geothermal pools, and Mammoth Mountain. 0.6 mile out-and-back trail descends into the canyon. Free, no fee.",
+      "warnings": [
+        "FOREST ORDER: No swimming, no entering water — geothermal temps can exceed 200°F.",
+        "No dogs in the water"
+      ],
+      "links": {
+        "inyo_nf": "https://www.fs.usda.gov/r05/inyo/recreation/hot-creek-geologic-site"
+      },
+      "drive_from_base_min": 10
+    },
+    {
+      "id": "hot_creek",
+      "name": "Hot Creek Geologic Site",
+      "type": "geo_stop",
+      "day": "1",
+      "lat": 37.6573,
+      "lng": -118.8341,
+      "elevation_ft": 7000,
+      "notes": "Interpretive trail, steaming geothermal pools, canyon views. Day use only, opens 6am. Free, no fee.",
+      "warnings": [
+        "FOREST ORDER: No swimming, no entering water, no being within 10 feet of Hot Creek. Effective through Dec 31 2026. Citation risk.",
+        "No dogs in the water — geothermal temps unpredictable"
+      ],
+      "links": {
+        "inyo_nf": "https://www.fs.usda.gov/r05/inyo/recreation/hot-creek-geologic-site"
+      },
+      "drive_from_base_min": 10
+    },
+    {
+      "id": "rock_tub",
+      "name": "The Rock Tub Hot Springs",
+      "type": "hot_spring",
+      "day": "1",
+      "lat": 37.6477,
+      "lng": -118.8089,
+      "elevation_ft": 6990,
+      "notes": "Single rock/cement tub, ~100°F, fits 6-8 people. No hiking required — drive right up. No fee, BLM land. Camping prohibited at tub itself. Brushes on-site to clean algae.",
+      "warnings": [
+        "Whitmore Tubs Road is dirt — can be muddy/impassable post-storm. Check conditions morning of.",
+        "Keep dog out of water — small dogs are heat-sensitive, temps vary"
+      ],
+      "links": {},
+      "drive_from_base_min": 12
+    },
+    {
+      "id": "crowley_stone_columns",
+      "name": "Lake Crowley Stone Columns",
+      "type": "geo_stop",
+      "day": "1",
+      "lat": 37.6365,
+      "lng": -118.7228,
+      "elevation_ft": 6800,
+      "notes": "Columnar basalt formations on the north shore of Lake Crowley. Roadside/short walk access. Volcanic geology from Long Valley Caldera.",
+      "warnings": [],
+      "links": {},
+      "drive_from_base_min": 15
+    },
+    {
+      "id": "mosquito_flat",
+      "name": "Mosquito Flat Trailhead (Little Lakes Valley)",
+      "type": "trailhead",
+      "day": "1",
+      "lat": 37.4396,
+      "lng": -118.7347,
+      "elevation_ft": 10230,
+      "notes": "Little Lakes Valley trail: 7.3 mi RT, ~1,050 ft gain. Chains of alpine lakes — Mack, Marsh, Heart, Long, Chickenfoot. Loop option via Morgan Pass adds mileage. No water at trailhead — bring everything.",
+      "warnings": [
+        "Parking fills by 8:30am on clear weekends — arrive before 8am or park lower and walk extra 0.25–0.5 mi",
+        "Snow on trail post-storm — microspikes required in May",
+        "Altitude: 10,230 ft — take it slow if coming from sea level",
+        "Upper Rock Creek Road open as of 4/21/26 — verify status if weather changes"
+      ],
+      "links": {
+        "alltrails": "https://www.alltrails.com/trail/us/california/little-lakes-valley-to-gem-lakes",
+        "inyo_nf": "https://www.fs.usda.gov/alerts/inyo/alerts-notices"
+      },
+      "drive_from_base_min": 30
+    },
+    {
+      "id": "big_pine_trailhead",
+      "name": "Big Pine Creek North Fork Trailhead",
+      "type": "trailhead",
+      "day": "2",
+      "lat": 37.1307,
+      "lng": -118.4275,
+      "elevation_ft": 7980,
+      "notes": "Big Pine Lakes trail: 9.6 mi RT to First + Second Lake, ~2,358 ft gain. Glacial blue lakes, Temple Crag views, Palisade Glacier visible from upper route. Overnight requires Inyo NF wilderness permit.",
+      "warnings": [
+        "Snow on trail past mile 3–4 in May — microspikes required",
+        "First Lake may be frozen in early May",
+        "Glacier Lodge Campground likely not open until late May — do not rely on it",
+        "Day-use parking fee (~$6) — bring cash or card",
+        "AllTrails recommends June–October for best conditions"
+      ],
+      "links": {
+        "alltrails": "https://www.alltrails.com/trail/us/california/first-and-second-lake-via-big-pine-lakes-trail",
+        "permits": "https://www.recreation.gov/permits/233262"
+      },
+      "drive_from_base_min": 50
+    }
+  ],
+  "routes": [
+    {
+      "day": 1,
+      "label": "Day 1 — Geology Crawl + Little Lakes Valley",
+      "color": "#E8671A",
+      "stops_ordered": [
+        "convict_lake",
+        "brees_lookout",
+        "hot_creek",
+        "rock_tub",
+        "crowley_stone_columns",
+        "mosquito_flat",
+        "convict_lake"
+      ]
+    },
+    {
+      "day": 2,
+      "label": "Day 2 — Big Pine Lakes",
+      "color": "#2E86AB",
+      "stops_ordered": [
+        "convict_lake",
+        "big_pine_trailhead",
+        "convict_lake"
+      ]
+    }
+  ]
+}
