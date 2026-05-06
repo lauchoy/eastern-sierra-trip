@@ -63,9 +63,9 @@ test.describe('Eastern Sierra Trip Map', () => {
     const legend = page.locator('#legend');
     await expect(legend).toBeVisible();
 
-    // Check all legend items
+    // Check all legend items (reduced from 6 to 3 for cleaner legend)
     const items = legend.locator('.legend-item');
-    await expect(items).toHaveCount(6);
+    await expect(items).toHaveCount(3);
   });
 
   // ========== MARKERS ==========
@@ -231,5 +231,75 @@ test.describe('Eastern Sierra Trip Map', () => {
     // Map container should still render even without trip data
     const mapEl = page.locator('#map');
     await expect(mapEl).toBeVisible();
+  });
+
+  // ========== NEW FEATURES: FILTERS & LAYER SWITCHER ==========
+
+  test('sidebar has Stops and Filters tabs', async ({ page }) => {
+    const tabs = page.locator('#sidebar-tabs .st');
+    await expect(tabs).toHaveCount(2);
+    await expect(tabs.nth(0)).toContainText('Stops');
+    await expect(tabs.nth(1)).toContainText('Filters');
+  });
+
+  test('filters tab shows filter panel with type and route sections', async ({ page }) => {
+    await page.locator('#sidebar-tabs .st').nth(1).click();
+    const filtersPanel = page.locator('#filters-panel');
+    await expect(filtersPanel).toHaveClass(/active/);
+
+    const sections = page.locator('.filter-section');
+    const count = await sections.count();
+    expect(count).toBeGreaterThanOrEqual(2);
+  });
+
+  test('filter checkboxes toggle marker types', async ({ page }) => {
+    await page.locator('#sidebar-tabs .st').nth(1).click();
+    // Uncheck campground filter
+    const checkbox = page.locator('.filter-item input[type="checkbox"]').first();
+    const initialChecked = await checkbox.isChecked();
+    expect(initialChecked).toBe(true);
+
+    await checkbox.click();
+    const afterUncheck = await checkbox.isChecked();
+    expect(afterUncheck).toBe(false);
+
+    // Re-check
+    await checkbox.click();
+    const afterRecheck = await checkbox.isChecked();
+    expect(afterRecheck).toBe(true);
+  });
+
+  test('map view layer switcher is present', async ({ page }) => {
+    // Leaflet layer control creates a .leaflet-control-layers element
+    const layerControl = page.locator('.leaflet-control-layers');
+    await expect(layerControl).toBeVisible();
+  });
+
+  test('scale control is present on the map', async ({ page }) => {
+    const scale = page.locator('.leaflet-control-scale');
+    await expect(scale).toBeVisible();
+  });
+
+  test('leaflet-routing-container is hidden', async ({ page }) => {
+    // OSRM routing container should not be present (we use direct OSRM API)
+    const routing = page.locator('.leaflet-routing-container');
+    await expect(routing).toHaveCount(0);
+  });
+
+  test('filter section headers are collapsible', async ({ page }) => {
+    await page.locator('#sidebar-tabs .st').nth(1).click();
+    const header = page.locator('.filter-section-header').first();
+    const section = page.locator('.filter-section').first();
+
+    // Initially not collapsed
+    await expect(section).not.toHaveClass(/collapsed/);
+
+    // Click header to collapse
+    await header.click();
+    await expect(section).toHaveClass(/collapsed/);
+
+    // Click again to expand
+    await header.click();
+    await expect(section).not.toHaveClass(/collapsed/);
   });
 });

@@ -22,7 +22,16 @@
     <div id="main">
       <aside id="sidebar" class="open">
         <div id="sidebar-content">
-          <div id="stop-list"></div>
+          <div id="sidebar-tabs">
+            <button class="st ab active" data-st="stops">📍 Stops</button>
+            <button class="st" data-st="filters">🔧 Filters</button>
+          </div>
+          <div id="stops-panel" class="sidebar-panel active">
+            <div id="stop-list"></div>
+          </div>
+          <div id="filters-panel" class="sidebar-panel">
+            <div id="filter-panel"></div>
+          </div>
           <div id="info-panel"></div>
         </div>
       </aside>
@@ -30,13 +39,11 @@
 
       <div id="map-container">
         <div id="map"></div>
+        <!-- Clean legend: 2 groups -->
         <div id="legend">
           <div class="legend-item"><span class="legend-dot" style="background:#2D6A4F"></span> Campground</div>
           <div class="legend-item"><span class="legend-dot" style="background:#1B4332"></span> Trailhead</div>
-          <div class="legend-item"><span class="legend-dot" style="background:#6A4C93"></span> Geo Stop</div>
-          <div class="legend-item"><span class="legend-dot" style="background:#C9594A"></span> Hot Spring</div>
-          <div class="legend-item"><span class="legend-line" style="background:#E8671A"></span> Day 1</div>
-          <div class="legend-item"><span class="legend-line" style="background:#2E86AB"></span> Day 2</div>
+          <div class="legend-item"><span class="legend-line" style="background:#E8671A"></span> Driving route</div>
         </div>
       </div>
     </div>

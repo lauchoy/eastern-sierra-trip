@@ -296,43 +296,6 @@ html, body {
   height: 100%;
 }
 
-/* ========== Legend ========== */
-#legend {
-  position: absolute;
-  bottom: 30px;
-  right: 12px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 10px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  z-index: 1000;
-  font-size: 0.78rem;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.legend-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.legend-line {
-  width: 20px;
-  height: 3px;
-  border-radius: 2px;
-  flex-shrink: 0;
-}
-
 /* ========== Marker Styles ========== */
 .marker-icon {
   display: flex;
@@ -455,4 +418,206 @@ html, body {
   max-height: 0 !important;
   overflow: hidden !important;
   padding: 0 !important;
+}
+
+/* ========== Sidebar Tabs ========== */
+#sidebar-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+}
+
+#sidebar-tabs .st {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 500;
+  text-align: center;
+  transition: all 0.15s;
+}
+
+#sidebar-tabs .st:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+#sidebar-tabs .st.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.sidebar-panel {
+  display: none;
+  flex-direction: column;
+}
+
+.sidebar-panel.active {
+  display: flex;
+}
+
+/* ========== Filter Panel ========== */
+#filter-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filter-section {
+  background: var(--surface-2);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.filter-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.filter-section-header:hover {
+  background: rgba(255,255,255,0.05);
+}
+
+.filter-toggle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.filter-section.collapsed .filter-toggle {
+  transform: rotate(0deg);
+}
+
+.filter-section:not(.collapsed) .filter-toggle {
+  transform: rotate(0deg);
+}
+
+.filter-section.collapsed .filter-body {
+  display: none;
+}
+
+.filter-body {
+  padding: 0 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.filter-item input[type="checkbox"] {
+  accent-color: var(--accent);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+.filter-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.filter-line {
+  width: 20px;
+  height: 3px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* ========== Leaflet Scale Control Dark Theme ========== */
+.leaflet-control-scale {
+  margin-left: 12px;
+  margin-bottom: 12px;
+}
+
+.leaflet-control-scale-line {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+  font-size: 0.75rem !important;
+  padding: 2px 6px !important;
+}
+
+/* ========== Leaflet Layer Control Dark Theme ========== */
+.leaflet-control-layers {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 6px !important;
+  color: var(--text) !important;
+}
+
+.leaflet-control-layers label {
+  color: var(--text) !important;
+  font-size: 0.82rem !important;
+}
+
+.leaflet-control-layers-selector {
+  accent-color: var(--accent) !important;
+}
+
+.leaflet-control-layers-toggle {
+  background-color: var(--surface) !important;
+}
+
+/* ========== Updated Clean Legend ========== */
+#legend {
+  position: absolute;
+  bottom: 55px;
+  right: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  z-index: 1000;
+  font-size: 0.78rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legend-line {
+  width: 22px;
+  height: 4px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  border-top: 3px dashed #E8671A;
+  background: transparent;
 }

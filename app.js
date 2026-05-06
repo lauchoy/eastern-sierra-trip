@@ -2,42 +2,44 @@
 // Zero API keys: uses Leaflet + OSM tiles + OSRM public API for routing
 
 const CONFIG = {
-  center: [37.38, -118.68],  // Lat, Lng for Leaflet
+  center: [37.38, -118.68],
   zoom: 10,
-  tileUrl: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-  tileAttribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
   osrmBase: 'https://router.project-osrm.org',
-  typeColors: {
-    campground: '#2D6A4F',
-    trailhead: '#1B4332',
-    geo_stop: '#6A4C93',
-    hot_spring: '#C9594A'
-  },
-  typeIcons: {
-    campground: '🏕️',
-    trailhead: '🥾',
-    geo_stop: '📷',
-    hot_spring: '♨️'
-  },
-  typeLabels: {
-    campground: 'Campground',
-    trailhead: 'Trailhead',
-    geo_stop: 'Geo Stop',
-    hot_spring: 'Hot Spring'
-  },
+  typeColors: { campground: '#2D6A4F', trailhead: '#1B4332', geo_stop: '#6A4C93', hot_spring: '#C9594A' },
+  typeIcons: { campground: '🏕️', trailhead: '🥾', geo_stop: '📷', hot_spring: '♨️' },
+  typeLabels: { campground: 'Campground', trailhead: 'Trailhead', geo_stop: 'Geo Stop', hot_spring: 'Hot Spring' },
   typeSVG: {
-    campground: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M4 20h16M12 4L3 20h18L12 4z"/><path d="M8 20l4-8 4 8"/><circle cx="12" cy="14" r="1.5" fill="#2D6A4F"/></svg>`,
-    trailhead: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#1B4332" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M4 20h16"/><path d="M12 3l-8 10h16L12 3z"/><path d="M9 13v7"/><path d="M15 13v7"/><path d="M7 20h10"/></svg>`,
-    geo_stop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#6A4C93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="15" cy="9" r="3"/><path d="M9 21l6-6"/><path d="M6 21l3-3"/><path d="M15 21l-3-3"/><path d="M12 12l-2 2"/></svg>`,
-    hot_spring: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#C9594A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M12 2v4"/><path d="M6 10a6 6 0 0112 0"/><path d="M8 10c0 2.2 1.8 4 4 4s4-1.8 4-4"/><path d="M10 15.5A5 5 0 0012 16a5 5 0 002-.5"/><path d="M9 19a4 4 0 006 0"/></svg>`
+    campground: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#2D6A4F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16M12 4L3 20h18L12 4z"/><path d="M8 20l4-8 4 8"/><circle cx="12" cy="14" r="1.5" fill="#2D6A4F"/></svg>`,
+    trailhead: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#1B4332" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M12 3l-8 10h16L12 3z"/><path d="M9 13v7"/><path d="M15 13v7"/><path d="M7 20h10"/></svg>`,
+    geo_stop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#6A4C93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="15" cy="9" r="3"/><path d="M9 21l6-6"/><path d="M6 21l3-3"/><path d="M15 21l-3-3"/><path d="M12 12l-2 2"/></svg>`,
+    hot_spring: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#C9594A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"/><path d="M6 10a6 6 0 0112 0"/><path d="M8 10c0 2.2 1.8 4 4 4s4-1.8 4-4"/><path d="M10 15.5A5 5 0 0012 16a5 5 0 002-.5"/><path d="M9 19a4 4 0 006 0"/></svg>`
+  },
+  // Tile layer definitions for map views
+  tileLayers: {
+    dark: {
+      name: 'Dark Topo',
+      url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+      attr: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+      subdomains: 'abcd'
+    },
+    terrain: {
+      name: 'Outdoors',
+      url: 'https://tile.thunderforest.com/outdoors/{z}/{x}/{y}.png?apikey=4f67ffeb8eed4275811cf8d38f8e7ef9',
+      attr: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://www.thunderforest.com/">Thunderforest</a>',
+      maxZoom: 18
+    },
+    satellite: {
+      name: 'Satellite',
+      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      attr: '&copy; Esri, Maxar, Earthstar Geographics',
+      maxZoom: 18
+    }
   }
 };
 
-let tripData, map, markers = {}, routeLayers = {}, activeDay = 'all', activeWaypointId = null;
+let tripData, map, markers = {}, markerGroups = {}, routeLayers = {};
+let activeDay = 'all', activeWaypointId = null, activeFilters = {};
+let baseTileLayer;
 
 // ========== Init ==========
 async function init() {
@@ -50,6 +52,10 @@ async function init() {
     tripData = { waypoints: [], routes: [] };
   }
 
+  // Init filter state: all types visible
+  Object.keys(CONFIG.typeColors).forEach(t => { activeFilters[t] = true; });
+  tripData.routes.forEach(r => { activeFilters['route_' + r.day] = true; });
+
   map = L.map('map', {
     center: CONFIG.center,
     zoom: CONFIG.zoom,
@@ -57,17 +63,34 @@ async function init() {
     attributionControl: true
   });
 
-  L.tileLayer(CONFIG.tileUrl, {
-    attribution: CONFIG.tileAttribution,
-    subdomains: 'abcd',
+  // Add scale control (improvement #3)
+  L.control.scale({ position: 'bottomleft', imperial: true, metric: false }).addTo(map);
+
+  // Base tile layer
+  baseTileLayer = L.tileLayer(CONFIG.tileLayers.dark.url, {
+    attribution: CONFIG.tileLayers.dark.attr,
+    subdomains: CONFIG.tileLayers.dark.subdomains,
     maxZoom: 20
   }).addTo(map);
+
+  // Build layer switcher for map views (improvement #2)
+  const baseLayers = {};
+  Object.entries(CONFIG.tileLayers).forEach(([key, cfg]) => {
+    baseLayers[cfg.name] = L.tileLayer(cfg.url, {
+      attribution: cfg.attr,
+      subdomains: cfg.subdomains,
+      maxZoom: cfg.maxZoom || 20
+    });
+  });
+  L.control.layers(baseLayers, null, { position: 'topright' }).addTo(map);
 
   createMarkers();
   renderAllRoutes();
   buildStopList();
+  buildFilterPanel();
   setupDayTabs();
   setupSidebar();
+  setupSidebarTabs();
 
   // Select base camp by default
   selectWaypoint('convict_lake');
@@ -76,13 +99,12 @@ async function init() {
 // ========== Markers ==========
 function createMarkers() {
   if (!tripData.waypoints || tripData.waypoints.length === 0) return;
+
   tripData.waypoints.forEach(wp => {
     const isBase = wp.id === 'convict_lake';
-    const iconHtml = createMarkerIcon(wp.type, isBase);
-
     const marker = L.marker([wp.lat, wp.lng], {
       icon: L.divIcon({
-        html: iconHtml,
+        html: createMarkerIcon(wp.type, isBase),
         className: isBase ? 'marker-icon marker-base' : 'marker-icon',
         iconSize: isBase ? [44, 44] : [32, 32],
         iconAnchor: isBase ? [22, 22] : [16, 16]
@@ -90,15 +112,14 @@ function createMarkers() {
       zIndexOffset: isBase ? 10000 : 0
     });
 
-    marker.bindTooltip(wp.name, {
-      direction: 'top',
-      offset: [0, -12],
-      className: 'marker-tooltip'
-    });
-
+    marker.bindTooltip(wp.name, { direction: 'top', offset: [0, -12] });
     marker.on('click', () => selectWaypoint(wp.id));
     marker.addTo(map);
     markers[wp.id] = marker;
+
+    // Group markers by type for filter toggling
+    if (!markerGroups[wp.type]) markerGroups[wp.type] = [];
+    markerGroups[wp.type].push(marker);
   });
 }
 
@@ -106,13 +127,7 @@ function createMarkerIcon(type, isBase) {
   const color = CONFIG.typeColors[type] || '#888';
   const svg = CONFIG.typeSVG[type] || '';
   const size = isBase ? 36 : 28;
-
-  return `<div style="
-    display:flex;align-items:center;justify-content:center;
-    width:${size}px;height:${size}px;
-    background:${color}22;border-radius:50%;border:2px solid ${color};
-    ${isBase ? 'box-shadow:0 0 12px ' + color + '66;' : ''}
-  ">${svg}</div>`;
+  return `<div style="display:flex;align-items:center;justify-content:center;width:${size}px;height:${size}px;background:${color}22;border-radius:50%;border:2px solid ${color};${isBase ? 'box-shadow:0 0 12px ' + color + '66;' : ''}">${svg}</div>`;
 }
 
 // ========== Routes ==========
@@ -129,15 +144,13 @@ async function renderRoute(route) {
   const coords = waypointIds
     .map(id => tripData.waypoints.find(w => w.id === id))
     .filter(w => w && w.lat && w.lng);
-
   if (coords.length < 2) return;
 
-  // Build OSRM waypoint string: lng,lat;lng,lat...
   const waypointStr = coords.map(c => `${c.lng},${c.lat}`).join(';');
   const cacheKey = route.day + '_' + waypointStr;
 
   if (routeCache[cacheKey]) {
-    drawRouteLine(route, routeCache[cacheKey], coords);
+    drawRouteLine(route, routeCache[cacheKey]);
     return;
   }
 
@@ -145,45 +158,29 @@ async function renderRoute(route) {
     const url = `${CONFIG.osrmBase}/route/v1/driving/${waypointStr}?geometries=geojson&overview=full&steps=false&alternatives=false`;
     const res = await fetch(url);
     const data = await res.json();
-
     if (!data || !data.routes || !data.routes[0]) {
-      console.warn(`OSRM returned no route for day ${route.day}`);
       drawStraightLine(route, coords);
       return;
     }
-
-    const geometry = data.routes[0].geometry;
-    routeCache[cacheKey] = geometry;
-    drawRouteLine(route, geometry, coords);
+    routeCache[cacheKey] = data.routes[0].geometry;
+    drawRouteLine(route, data.routes[0].geometry);
   } catch (err) {
-    console.error(`Failed to fetch route for day ${route.day}:`, err);
-    // Fallback: straight line
     drawStraightLine(route, coords);
   }
 }
 
-function drawRouteLine(route, geometry, coords) {
+function drawRouteLine(route, geometry) {
   const latlngs = geometry.coordinates.map(c => [c[1], c[0]]);
-
   const polyline = L.polyline(latlngs, {
-    color: route.color,
-    weight: 4,
-    opacity: 0.8,
-    dashArray: [10, 6],
-    lineCap: 'round',
-    lineJoin: 'round'
+    color: route.color, weight: 4, opacity: 0.8, dashArray: [10, 6], lineCap: 'round', lineJoin: 'round'
   }).addTo(map);
-
   routeLayers[route.day] = polyline;
 }
 
 function drawStraightLine(route, coords) {
   const latlngs = coords.map(c => [c.lat, c.lng]);
   const polyline = L.polyline(latlngs, {
-    color: route.color,
-    weight: 3,
-    opacity: 0.5,
-    dashArray: [8, 6]
+    color: route.color, weight: 3, opacity: 0.5, dashArray: [8, 6]
   }).addTo(map);
   routeLayers[route.day] = polyline;
 }
@@ -192,15 +189,71 @@ function setRouteVisibility(day, visible) {
   Object.entries(routeLayers).forEach(([key, layer]) => {
     const routeDay = parseInt(key);
     if (isNaN(routeDay) || !layer) return;
-
-    if (day === 'all') {
-      layer.setStyle({ opacity: 0.8 });
-    } else if (day === routeDay) {
-      layer.setStyle({ opacity: 0.8 });
-    } else {
-      layer.setStyle({ opacity: 0 });
-    }
+    layer.setStyle({ opacity: (day === 'all' || day === routeDay) ? 0.8 : 0 });
   });
+}
+
+// ========== Filter System ==========
+function buildFilterPanel() {
+  const container = document.getElementById('filter-panel');
+  if (!container) return;
+
+  // Marker type filters
+  let html = `<div class="filter-section">
+    <div class="filter-section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+      <span>📍 Point Types</span>
+      <span class="filter-toggle">−</span>
+    </div>
+    <div class="filter-body">`;
+
+  Object.entries(CONFIG.typeLabels).forEach(([type, label]) => {
+    const color = CONFIG.typeColors[type];
+    html += `
+      <label class="filter-item">
+        <input type="checkbox" checked data-filter="type" data-value="${type}" onchange="toggleTypeFilter('${type}', this.checked)">
+        <span class="filter-dot" style="background:${color}"></span>
+        ${label}
+      </label>`;
+  });
+
+  html += `</div></div>`;
+
+  // Route filters
+  html += `<div class="filter-section">
+    <div class="filter-section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+      <span>🗺️ Routes</span>
+      <span class="filter-toggle">−</span>
+    </div>
+    <div class="filter-body">`;
+
+  tripData.routes.forEach(route => {
+    html += `
+      <label class="filter-item">
+        <input type="checkbox" checked data-filter="route" data-value="${route.day}" onchange="toggleRouteFilter(${route.day}, this.checked)">
+        <span class="filter-line" style="background:${route.color}"></span>
+        ${route.label}
+      </label>`;
+  });
+
+  html += `</div></div>`;
+
+  container.innerHTML = html;
+}
+
+function toggleTypeFilter(type, visible) {
+  activeFilters[type] = visible;
+  (markerGroups[type] || []).forEach(marker => {
+    if (visible) marker.addTo(map);
+    else map.removeLayer(marker);
+  });
+}
+
+function toggleRouteFilter(day, visible) {
+  activeFilters['route_' + day] = visible;
+  const layer = routeLayers[day];
+  if (layer) {
+    layer.setStyle({ opacity: visible ? 0.8 : 0 });
+  }
 }
 
 // ========== Waypoint Selection ==========
@@ -209,12 +262,11 @@ function selectWaypoint(id) {
   const wp = tripData.waypoints.find(w => w.id === id);
   if (!wp) return;
 
-  // Update marker highlights
   Object.keys(markers).forEach(mid => {
     const m = markers[mid];
     const isActive = mid === id;
-    const zIndex = (mid === 'convict_lake') ? 10000 : 0;
-    m.setZIndexOffset(isActive ? 20000 : zIndex);
+    const baseZ = (mid === 'convict_lake') ? 10000 : 0;
+    m.setZIndexOffset(isActive ? 20000 : baseZ);
   });
 
   updateInfoPanel(wp);
@@ -231,8 +283,7 @@ function updateInfoPanel(wp) {
   const dayLabel = wp.day === 'base' ? 'Base Camp' : `Day ${wp.day}`;
   const elev = wp.elevation_ft ? `${wp.elevation_ft.toLocaleString()} ft` : '';
   const drive = wp.drive_from_base_min !== null && wp.drive_from_base_min !== undefined
-    ? `🚗 ~${wp.drive_from_base_min} min from base camp`
-    : '';
+    ? `🚗 ~${wp.drive_from_base_min} min from base camp` : '';
 
   let html = `
     <div class="info-header">
@@ -241,72 +292,43 @@ function updateInfoPanel(wp) {
         <div class="info-title">${wp.name}</div>
         <div class="info-subtitle">${typeLabel} · ${dayLabel}${elev ? ' · ' + elev : ''}</div>
       </div>
-    </div>
-  `;
+    </div>`;
 
   if (wp.notes) {
-    html += `
-      <div class="info-section">
-        <div class="info-section-header">📝 Notes</div>
-        <div class="info-notes">${wp.notes.replace(/\n/g, '<br>')}</div>
-      </div>
-    `;
+    html += `<div class="info-section"><div class="info-section-header">📝 Notes</div><div class="info-notes">${wp.notes.replace(/\n/g, '<br>')}</div></div>`;
   }
 
   if (wp.warnings && wp.warnings.length > 0) {
     let warningsHtml = '<div class="info-warnings">';
     wp.warnings.forEach(w => {
-      const isHard = w.toLowerCase().includes('closure') || w.toLowerCase().includes('citation') || w.toLowerCase().includes('danger');
+      const isHard = /closure|citation|danger/i.test(w);
       warningsHtml += `<div class="info-warning${isHard ? ' hard-closure' : ''}">⚠️ ${w}</div>`;
     });
     warningsHtml += '</div>';
-    html += `
-      <div class="info-section">
-        <div class="info-section-header">⚠️ Warnings</div>
-        ${warningsHtml}
-      </div>
-    `;
+    html += `<div class="info-section"><div class="info-section-header">⚠️ Warnings</div>${warningsHtml}</div>`;
   }
 
   if (wp.links && Object.keys(wp.links).length > 0) {
-    const linkLabels = {
-      reservation: 'Reserve on Recreation.gov',
-      alltrails: 'View on AllTrails',
-      inyo_nf: 'Inyo NF Alerts',
-      permits: 'Get Wilderness Permit'
-    };
+    const linkLabels = { reservation: 'Reserve on Recreation.gov', alltrails: 'View on AllTrails', inyo_nf: 'Inyo NF Alerts', permits: 'Get Wilderness Permit' };
     let linksHtml = '<div class="info-links">';
     Object.entries(wp.links).forEach(([key, url]) => {
-      const label = linkLabels[key] || key;
-      linksHtml += `<a class="info-link" href="${url}" target="_blank" rel="noopener">${label} ↗</a>`;
+      linksHtml += `<a class="info-link" href="${url}" target="_blank" rel="noopener">${linkLabels[key] || key} ↗</a>`;
     });
     linksHtml += '</div>';
-    html += `
-      <div class="info-section">
-        <div class="info-section-header">🔗 Links</div>
-        ${linksHtml}
-      </div>
-    `;
+    html += `<div class="info-section"><div class="info-section-header">🔗 Links</div>${linksHtml}</div>`;
   }
 
-  if (drive) {
-    html += `<div class="info-drive">${drive}</div>`;
-  }
-
+  if (drive) html += `<div class="info-drive">${drive}</div>`;
   panel.innerHTML = html;
 }
 
 // ========== Stop List ==========
 function buildStopList() {
   const container = document.getElementById('stop-list');
-
   const groups = { base: [], '1': [], '2': [] };
-  tripData.waypoints.forEach(wp => {
-    if (groups[wp.day]) groups[wp.day].push(wp);
-  });
+  tripData.waypoints.forEach(wp => { if (groups[wp.day]) groups[wp.day].push(wp); });
 
   const dayLabels = { base: '🏕️ Base Camp', '1': '🚗 Day 1', '2': '🚗 Day 2' };
-
   let html = '';
   ['base', '1', '2'].forEach(day => {
     const stops = groups[day];
@@ -315,20 +337,10 @@ function buildStopList() {
     stops.forEach(wp => {
       const color = CONFIG.typeColors[wp.type] || '#888';
       const isBase = wp.id === 'convict_lake';
-      html += `
-        <div class="stop-list-item" data-id="${wp.id}">
-          <span class="stop-list-dot" style="background:${color}"></span>
-          <span class="stop-list-name">${isBase ? '⭐ ' : ''}${wp.name}</span>
-          <span class="stop-list-badge">${CONFIG.typeLabels[wp.type]}</span>
-          ${wp.elevation_ft ? `<span class="stop-list-elev">${(wp.elevation_ft / 1000).toFixed(1)}k</span>` : ''}
-        </div>
-      `;
+      html += `<div class="stop-list-item" data-id="${wp.id}"><span class="stop-list-dot" style="background:${color}"></span><span class="stop-list-name">${isBase ? '⭐ ' : ''}${wp.name}</span><span class="stop-list-badge">${CONFIG.typeLabels[wp.type]}</span>${wp.elevation_ft ? '<span class="stop-list-elev">' + (wp.elevation_ft / 1000).toFixed(1) + 'k</span>' : ''}</div>`;
     });
   });
-
   container.innerHTML = html;
-
-  // Attach click handlers
   container.querySelectorAll('.stop-list-item').forEach(el => {
     el.addEventListener('click', () => selectWaypoint(el.dataset.id));
   });
@@ -353,36 +365,19 @@ function setupDayTabs() {
 }
 
 function filterByDay(day) {
-  // Show/hide waypoints
   tripData.waypoints.forEach(wp => {
     const marker = markers[wp.id];
     if (!marker) return;
-
-    if (day === 'all') {
-      marker.addTo(map);
-    } else if (day === 'base') {
-      if (wp.day === 'base') marker.addTo(map);
-      else map.removeLayer(marker);
-    } else {
-      // Show waypoints that match this day OR are base camp
-      if (wp.day === day || wp.day === 'base') marker.addTo(map);
-      else map.removeLayer(marker);
-    }
+    if (!activeFilters[wp.type]) { map.removeLayer(marker); return; }
+    if (day === 'all' || wp.day === day || wp.day === 'base') marker.addTo(map);
+    else map.removeLayer(marker);
   });
-
-  // Update route visibility
   setRouteVisibility(day);
-
-  // Update stop list visibility
   document.querySelectorAll('.stop-list-item').forEach(el => {
     const id = el.dataset.id;
     const wp = tripData.waypoints.find(w => w.id === id);
     if (!wp) return;
-    if (day === 'all' || wp.day === day || wp.day === 'base') {
-      el.style.display = 'flex';
-    } else {
-      el.style.display = 'none';
-    }
+    el.style.display = (day === 'all' || wp.day === day || wp.day === 'base') ? 'flex' : 'none';
   });
 }
 
@@ -390,11 +385,24 @@ function filterByDay(day) {
 function setupSidebar() {
   const toggle = document.getElementById('sidebar-toggle');
   const sidebar = document.getElementById('sidebar');
-
   toggle.addEventListener('click', () => {
     sidebar.classList.toggle('closed');
     toggle.textContent = sidebar.classList.contains('closed') ? '→' : '←';
     setTimeout(() => map.invalidateSize(), 350);
+  });
+}
+
+// ========== Sidebar Tabs (Stops / Filters) ==========
+function setupSidebarTabs() {
+  document.querySelectorAll('#sidebar-tabs .st').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('#sidebar-tabs .st').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const panel = tab.dataset.st;
+      document.querySelectorAll('.sidebar-panel').forEach(p => p.classList.remove('active'));
+      const target = document.getElementById(panel + '-panel');
+      if (target) target.classList.add('active');
+    });
   });
 }
 
