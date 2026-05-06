@@ -118,22 +118,35 @@ async function scrapeAllTrails(url) {
 
 // ========== OSM Overpass for trail geometry ==========
 async function queryOverpass(trailName, centerLat = null, centerLng = null) {
-  // Build bounding box or location-based search
-  let bboxFilter = '';
+  let bbox = '';
   if (centerLat && centerLng) {
-    const d = 0.15;
-    bboxFilter = `(${centerLat - d},${centerLng - d},${centerLat + d},${centerLng + d})`;
+    const d = 0.2;
+    bbox = `(${centerLat - d},${centerLng - d},${centerLat + d},${centerLng + d})`;
   }
 
-  const name = trailName.replace(/['"]/g, '').substring(0, 40);
+  // Extract core name: remove "Trail", "to", trailing location words, punctuation
+  let coreName = trailName
+    .replace(/\s*Trail$/i, '')
+    .replace(/\s*to\s.*$/i, '')
+    .replace(/[^\w\s]/g, '')
+    .trim()
+    .substring(0, 25);
+
+  if (coreName.length < 4) coreName = trailName.substring(0, 25).replace(/[^\w\s]/g, '').trim();
+
   const queries = [
-    // Try exact name match on hiking relations
-    `[out:json][timeout:15];(relation["route"="hiking"]["name"="${name}"]${bboxFilter};way["name"="${name}"]["highway"="path"](if:length()>200)${bboxFilter};);out geom;`,
-    // Try fuzzy match
-    `[out:json][timeout:15];(relation["route"="hiking"]["name"~"${name}"i]${bboxFilter};way["name"~"${name}"i]["highway"="path"](if:length()>200)${bboxFilter};);out geom;`,
-    // Try name contains (without trailing words like "Trail")
-    `[out:json][timeout:15];(way["name"~"${name.substring(0, 20)}"i]["highway"="path"](if:length()>200)${bboxFilter};);out geom;`,
+    // 1. Exact match on hiking route relation
+    `[out:json][timeout:10];relation["route"="hiking"]["name"="${trailName.replace(/['"]/g, '')}"]${bbox};out geom;`,
+    // 2. Contains core name
+    `[out:json][timeout:10];relation["route"="hiking"]["name"~"${coreName}"i]${bbox};out geom;`,
+    // 3. Contains first 3 words of trail name
+    `[out:json][timeout:10];relation["route"="hiking"](if:length()>100)${bbox};(._;way(r)(if:length()>100););out geom;`,
   ];
+
+  // Also search for individual way segments by name
+  const wayQuery = `[out:json][timeout:10];way["name"~"${coreName}"i]["highway"="path"](if:length()>200)${bbox};out geom;`;
+
+  let allCoords = [];
 
   for (const query of queries) {
     try {
@@ -145,21 +158,48 @@ async function queryOverpass(trailName, centerLat = null, centerLng = null) {
       const data = await res.json();
       if (!data.elements?.length) continue;
 
-      // Pick the longest trail (most coordinates = most likely the right one)
-      let best = null, bestLen = 0;
       for (const el of data.elements) {
-        const coords = el.geometry ? el.geometry.map(p => [p.lat, p.lon]) : [];
-        if (coords.length > bestLen) {
-          bestLen = coords.length;
-          best = { coords, tags: el.tags || {}, id: el.id };
+        const coords = [];
+        if (el.geometry) {
+          coords.push(...el.geometry.map(p => [p.lat, p.lon]));
+        } else if (el.members) {
+          // Relations have members — collect all geometry
+          for (const m of el.members) {
+            if (m.geometry) coords.push(...m.geometry.map(p => [p.lat, p.lon]));
+          }
+        }
+        if (coords.length > allCoords.length) {
+          allCoords = coords;
         }
       }
-      if (best && bestLen > 5) return best;
-    } catch (err) {
-      console.warn('Overpass query failed:', err.message);
-    }
+      if (allCoords.length > 10) break;
+    } catch {}
   }
-  return null;
+
+  // If relation search failed, try individual ways
+  if (allCoords.length < 5) {
+    try {
+      const res = await fetch('https://overpass-api.de/api/interpreter', {
+        method: 'POST',
+        body: `data=${encodeURIComponent(wayQuery)}`,
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
+      const data = await res.json();
+      if (data.elements?.length) {
+        const el = data.elements.reduce((a, b) => {
+          const aLen = a.geometry?.length || 0;
+          const bLen = b.geometry?.length || 0;
+          return aLen > bLen ? a : b;
+        });
+        if (el.geometry) {
+          allCoords = el.geometry.map(p => [p.lat, p.lon]);
+        }
+      }
+    } catch {}
+  }
+
+  if (allCoords.length < 5) return null;
+  return { coords: allCoords };
 }
 
 // ========== Main handler ==========
@@ -206,7 +246,6 @@ export default async function handler(req, res) {
 
   // Stage 2: OSM Overpass for trail geometry
   let geometry = null;
-  let osmTags = null;
   try {
     // Try with known California Eastern Sierra coordinates
     const centerMatch = markdown.match(/[-]?\d+\.\d+,\s*[-]?\d+\.\d+/);
@@ -220,16 +259,6 @@ export default async function handler(req, res) {
     const osmResult = await queryOverpass(metadata.name, lat, lng);
     if (osmResult) {
       geometry = osmResult.coords;
-      osmTags = osmResult.tags;
-
-      // Enrich metadata from OSM tags
-      if (!metadata.length_mi && osmTags.length) {
-        const km = parseFloat(osmTags.length);
-        if (!isNaN(km)) metadata.length_mi = (km * 0.62137).toFixed(1);
-      }
-      if (!metadata.difficulty && osmTags.sac_scale) {
-        metadata.difficulty = osmTags.sac_scale;
-      }
     }
   } catch (err) {
     console.error('OSM Overpass failed:', err.message);
