@@ -108,8 +108,7 @@ async function scrapeAllTrails(url) {
     body: JSON.stringify({
       url,
       formats: ['markdown'],
-      onlyMainContent: true,
-      waitFor: 3000
+      onlyMainContent: true
     })
   });
   if (!res.ok) throw new Error(`Firecrawl scrape failed (${res.status})`);
