@@ -16,33 +16,70 @@ const CONFIG = {
   },
   // Tile layer definitions for map views
   tileLayers: {
-    dark: {
-      name: 'Dark Topo',
-      url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-      attr: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
-      subdomains: 'abcd'
+    light: {
+      name: 'Map',
+      url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      attr: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      subdomains: 'abc',
+      maxZoom: 19
     },
-    terrain: {
-      name: 'Outdoors',
-      url: 'https://tile.thunderforest.com/outdoors/{z}/{x}/{y}.png?apikey=4f67ffeb8eed4275811cf8d38f8e7ef9',
-      attr: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://www.thunderforest.com/">Thunderforest</a>',
-      maxZoom: 18
+    topo: {
+      name: 'Topo',
+      url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+      attr: '&copy; <a href="https://opentopomap.org">OpenTopoMap</a>',
+      maxZoom: 17
     },
     satellite: {
       name: 'Satellite',
       url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
       attr: '&copy; Esri, Maxar, Earthstar Geographics',
       maxZoom: 18
+    },
+    dark: {
+      name: 'Dark',
+      url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+      attr: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+      subdomains: 'abcd',
+      maxZoom: 20
     }
   }
 };
 
 let tripData, map, markers = {}, markerGroups = {}, routeLayers = {};
 let activeDay = 'all', activeWaypointId = null, activeFilters = {};
-let baseTileLayer;
+let baseTileLayer, activeLayerKey;
 
 // ========== Mobile Helpers ==========
 function isMobile() { return window.innerWidth <= 768; }
+
+// ========== Custom Layer Switcher ==========
+function buildLayerSwitcher(allLayers) {
+  const container = document.getElementById('layer-switcher');
+  if (!container) return;
+
+  container.innerHTML = '';
+  Object.keys(CONFIG.tileLayers).forEach(key => {
+    const btn = document.createElement('button');
+    btn.className = 'ls-btn' + (key === activeLayerKey ? ' active' : '');
+    btn.textContent = CONFIG.tileLayers[key].name;
+    btn.addEventListener('click', () => switchLayer(key, allLayers));
+    container.appendChild(btn);
+  });
+}
+
+function switchLayer(key, allLayers) {
+  if (key === activeLayerKey) return;
+  // Remove current
+  if (allLayers[activeLayerKey]) map.removeLayer(allLayers[activeLayerKey]);
+  // Add new
+  allLayers[key].addTo(map);
+  activeLayerKey = key;
+
+  // Update button states
+  document.querySelectorAll('.ls-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent === CONFIG.tileLayers[key].name);
+  });
+}
 
 // ========== Init ==========
 async function init() {
@@ -69,23 +106,34 @@ async function init() {
   // Add scale control (improvement #3)
   L.control.scale({ position: 'bottomleft', imperial: true, metric: false }).addTo(map);
 
-  // Base tile layer
-  baseTileLayer = L.tileLayer(CONFIG.tileLayers.dark.url, {
-    attribution: CONFIG.tileLayers.dark.attr,
-    subdomains: CONFIG.tileLayers.dark.subdomains,
-    maxZoom: 20
+  // Base tile layer — default to light OSM
+  baseTileLayer = L.tileLayer(CONFIG.tileLayers.light.url, {
+    attribution: CONFIG.tileLayers.light.attr,
+    subdomains: CONFIG.tileLayers.light.subdomains,
+    maxZoom: CONFIG.tileLayers.light.maxZoom
   }).addTo(map);
 
-  // Build layer switcher for map views (improvement #2)
-  const baseLayers = {};
+  // All tile layer instances for switching
+  const allLayers = {};
   Object.entries(CONFIG.tileLayers).forEach(([key, cfg]) => {
-    baseLayers[cfg.name] = L.tileLayer(cfg.url, {
+    allLayers[key] = L.tileLayer(cfg.url, {
       attribution: cfg.attr,
       subdomains: cfg.subdomains,
       maxZoom: cfg.maxZoom || 20
     });
   });
-  L.control.layers(baseLayers, null, { position: 'topright' }).addTo(map);
+  // Add light as active
+  allLayers.light.addTo(map);
+  activeLayerKey = 'light';
+
+  // Build custom layer switcher bar (buttons instead of radio)
+  buildLayerSwitcher(allLayers);
+
+  // Mobile: sidebar starts peeked (closed)
+  if (isMobile()) {
+    document.getElementById('sidebar').classList.add('closed');
+    document.getElementById('sidebar-toggle').textContent = '≡';
+  }
 
   createMarkers();
   renderAllRoutes();
@@ -416,6 +464,23 @@ function setupSidebar() {
 
   // ========== Mobile: Bottom Sheet Touch Drag ==========
   let startY = 0, currentY = 0, isDragging = false;
+
+  // Tap on drag handle or tabs area toggles the sidebar on mobile
+  if (isMobile()) {
+    const tapTargets = [sidebar.querySelector('.sidebar-drag-handle'), sidebar.querySelector('#sidebar-tabs')];
+    tapTargets.forEach(el => {
+      if (!el) return;
+      el.style.cursor = 'pointer';
+      el.addEventListener('click', (e) => {
+        if (sidebar.classList.contains('closed')) {
+          sidebar.classList.remove('closed');
+          toggle.textContent = '✕';
+          hideInfoPanel();
+        }
+      });
+    });
+  }
+
   const dragHandle = sidebar.querySelector('.sidebar-drag-handle');
   if (dragHandle) {
     dragHandle.addEventListener('touchstart', (e) => {

@@ -270,10 +270,17 @@ test.describe('Eastern Sierra Trip Map', () => {
     expect(afterRecheck).toBe(true);
   });
 
-  test('map view layer switcher is present', async ({ page }) => {
-    // Leaflet layer control creates a .leaflet-control-layers element
-    const layerControl = page.locator('.leaflet-control-layers');
-    await expect(layerControl).toBeVisible();
+  test('map view layer switcher has Map, Topo, Satellite, Dark buttons', async ({ page }) => {
+    const switcher = page.locator('#layer-switcher');
+    await expect(switcher).toBeVisible();
+    const buttons = switcher.locator('.ls-btn');
+    await expect(buttons).toHaveCount(4);
+    await expect(buttons.nth(0)).toContainText('Map');
+    await expect(buttons.nth(1)).toContainText('Topo');
+    await expect(buttons.nth(2)).toContainText('Satellite');
+    await expect(buttons.nth(3)).toContainText('Dark');
+    // "Map" should be active by default
+    await expect(buttons.nth(0)).toHaveClass(/active/);
   });
 
   test('scale control is present on the map', async ({ page }) => {
