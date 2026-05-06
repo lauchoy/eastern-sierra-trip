@@ -251,8 +251,8 @@ export default async function handler(req, res) {
   let geometry = null;
   try {
     // Try with known California Eastern Sierra coordinates
+    let lat = 37.44, lng = -118.73;
     const centerMatch = markdown.match(/[-]?\d+\.\d+,\s*[-]?\d+\.\d+/);
-    let lat = 37.44, lng = -118.73; // Default: Eastern Sierra
     if (centerMatch) {
       const parts = centerMatch[0].split(',').map(Number);
       if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
@@ -260,7 +260,7 @@ export default async function handler(req, res) {
       }
     }
     const osmResult = await queryOverpass(metadata.name, lat, lng);
-    if (osmResult) {
+    if (osmResult && osmResult.coords && osmResult.coords.length > 5) {
       geometry = osmResult.coords;
     }
   } catch (err) {
