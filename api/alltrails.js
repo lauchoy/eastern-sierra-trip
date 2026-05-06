@@ -1,148 +1,104 @@
 /**
- * AllTrails Connector — Powered by Firecrawl
+ * AllTrails+OSM Trail Connector — Vercel Serverless Function
  *
- * Accepts an AllTrails trail URL, uses Firecrawl to extract
- * trail metadata + geometry, returns structured GeoJSON.
+ * Two-stage strategy:
+ * 1. Firecrawl scrape → rich metadata from AllTrails (name, difficulty, rating, etc.)
+ * 2. OSM Overpass API → trail geometry (AllTrails data originates from OSM)
  *
- * Strategy:
- * 1. Firecrawl scrape the trail page (handles JS, anti-bot)
- * 2. Extract __NEXT_DATA__ from raw HTML for geometry polyline
- * 3. Decode Google encoded polyline → [lat, lng] coordinates
- * 4. Extract structured metadata via Firecrawl/LLM
- * 5. Fall back to OSM Overpass for trails without AllTrails URLs
+ * Result: Full trail data (metadata + geometry) with zero auth/API keys beyond Firecrawl.
  */
 
 const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY || '';
 const FIRECRAWL_BASE = 'https://api.firecrawl.dev/v1';
 
-// ========== Google Encoded Polyline Decoder (precision 5) ==========
+// ========== Google Encoded Polyline Decoder ==========
 function decodePolyline(encoded, precision = 5) {
   if (!encoded || typeof encoded !== 'string') return null;
   const factor = Math.pow(10, precision);
   const coords = [];
   let index = 0, lat = 0, lng = 0;
-
   while (index < encoded.length) {
     let shift = 0, result = 0, byte;
-    do {
-      byte = encoded.charCodeAt(index++) - 63;
-      result |= (byte & 0x1f) << shift;
-      shift += 5;
-    } while (byte >= 0x20);
+    do { byte = encoded.charCodeAt(index++) - 63; result |= (byte & 0x1f) << shift; shift += 5; } while (byte >= 0x20);
     lat += ((result & 1) ? ~(result >> 1) : (result >> 1));
-
     shift = 0; result = 0;
-    do {
-      byte = encoded.charCodeAt(index++) - 63;
-      result |= (byte & 0x1f) << shift;
-      shift += 5;
-    } while (byte >= 0x20);
+    do { byte = encoded.charCodeAt(index++) - 63; result |= (byte & 0x1f) << shift; shift += 5; } while (byte >= 0x20);
     lng += ((result & 1) ? ~(result >> 1) : (result >> 1));
-
     coords.push([lat / factor, lng / factor]);
   }
   return coords;
 }
 
-// ========== Deep search for polyline data in JSON ==========
-function deepFindPolylines(obj, results = []) {
-  if (!obj || typeof obj !== 'object') return results;
-  if (Array.isArray(obj)) {
-    obj.forEach(item => deepFindPolylines(item, results));
-    return results;
-  }
-  // Look for Google encoded polyline strings
-  if (obj.pointsData && typeof obj.pointsData === 'string' && obj.pointsData.length > 20) {
-    results.push(obj.pointsData);
-  }
-  if (obj.polyline && typeof obj.polyline === 'object') {
-    deepFindPolylines(obj.polyline, results);
-  }
-  // Try common AllTrails geometry fields
-  ['encodedPolyline', 'polyline', 'path', 'routePath', 'routeLine'].forEach(field => {
-    if (obj[field] && typeof obj[field] === 'string' && obj[field].length > 20) {
-      results.push(obj[field]);
-    }
-  });
-  Object.values(obj).forEach(val => {
-    if (val && typeof val === 'object') deepFindPolylines(val, results);
-  });
-  return results;
-}
-
-// ========== Extract trail data from __NEXT_DATA__ JSON ==========
-function extractFromNextData(jsonStr) {
-  try {
-    const data = typeof jsonStr === 'string' ? JSON.parse(jsonStr) : jsonStr;
-    const pageProps = data?.props?.pageProps || {};
-    let trail = pageProps.trail || pageProps.route || null;
-
-    // Direct API response format
-    if (!trail && pageProps.trails?.[0]) trail = pageProps.trails[0];
-    if (!trail && pageProps.maps?.[0]) {
-      trail = pageProps.maps[0];
-      trail._isMap = true;
-    }
-
-    // Find polylines anywhere in the data
-    const allPolylines = deepFindPolylines(pageProps);
-    let geometry = null;
-    if (allPolylines.length > 0) {
-      geometry = decodePolyline(allPolylines[0]);
-    }
-
-    // Extract metadata
-    const get = (obj, ...keys) => {
-      for (const k of keys) {
-        const val = typeof obj === 'object' ? obj?.[k] : obj;
-        if (val !== undefined && val !== null) return val;
-      }
-      return null;
-    };
-
-    return {
-      name: get(trail, 'name', 'title', 'displayName') || 'Unnamed Trail',
-      geometry,
-      metadata: {
-        difficulty: get(trail, 'difficulty', 'skillLevel'),
-        length_mi: trail?.length ? parseFloat(trail.length)?.toFixed(1) : null,
-        length_km: trail?.lengthKm ? parseFloat(trail.lengthKm)?.toFixed(1) : null,
-        elevation_gain_ft: get(trail, 'elevationGain', 'ascent', 'elevation_gain'),
-        rating: trail?.rating ? parseFloat(trail.rating)?.toFixed(1) : null,
-        route_type: get(trail, 'routeType', 'route_type', 'activityType'),
-        duration: get(trail, 'duration', 'durationHours'),
-        description: get(trail, 'description', 'summary'),
-        thumbnail: get(trail, 'thumbnail', 'photoUrl', 'imageUrl'),
-        stats: trail?.stats ? {
-          distance: trail.stats.distance,
-          elevationGain: trail.stats.elevationGain,
-          avgGrade: trail.stats.avgGrade,
-          maxElevation: trail.stats.maxElevation,
-          minElevation: trail.stats.minElevation,
-          duration: trail.stats.duration
-        } : null
-      }
-    };
-  } catch (err) {
-    console.error('extractFromNextData failed:', err.message);
-    return null;
-  }
-}
-
-// ========== Extract trail URL slug ==========
+// ========== Extract slug from AllTrails URL ==========
 function extractSlug(url) {
   try {
     const u = new URL(url);
     const match = u.pathname.match(/\/trail\/[^/]+\/[^/]+\/([^/]+)/);
-    if (match) return match[1];
-    const idMatch = u.pathname.match(/\/trails\/(\d+)/);
-    if (idMatch) return idMatch[1];
-    return null;
+    return match ? match[1] : null;
   } catch { return null; }
 }
 
-// ========== Firecrawl scrape ==========
-async function firecrawlScrape(url) {
+// ========== Parse trail data from Firecrawl markdown ==========
+function parseMarkdownForTrail(md, nameFallback) {
+  const trail = {
+    name: nameFallback || 'Unnamed Trail',
+    difficulty: null,
+    length_mi: null,
+    elevation_gain_ft: null,
+    rating: null,
+    route_type: null,
+    description: null,
+    location: null,
+    duration: null
+  };
+
+  if (!md) return trail;
+
+  // Try to extract from structured content
+  const lines = md.split('\n').map(l => l.trim()).filter(Boolean);
+
+  // Name: usually the first heading
+  const nameMatch = md.match(/^#\s+(.+)/m);
+  if (nameMatch) trail.name = nameMatch[1].replace(/[🐾🥾🏔️⛰️📍📷]/g, '').trim();
+
+  // Rating: look for star rating patterns
+  const ratingMatch = md.match(/(\d+(\.\d+)?)\s*\/?\s*5\s*stars?/i) || md.match(/(\d+(\.\d+)?)\s*star/i);
+  if (ratingMatch) trail.rating = parseFloat(ratingMatch[1]);
+
+  // Length: various patterns
+  const lengthMatch = md.match(/(\d+(\.\d+)?)\s*(mi|mile|miles)/i);
+  if (lengthMatch && !lengthMatch[0].toLowerCase().includes('elevation')) {
+    trail.length_mi = parseFloat(lengthMatch[1]);
+  }
+
+  // Elevation gain
+  const elevMatch = md.match(/(\d+[,\d]*)\s*(ft|feet)\s*(elevation|gain|ascent)/i)
+    || md.match(/elevation\s*(gain|ascent)[^0-9]*(\d+[,\d]*)\s*(ft|feet)/i);
+  if (elevMatch) {
+    trail.elevation_gain_ft = parseInt(elevMatch[1]?.replace(/,/g, '') || elevMatch[2]?.replace(/,/g, ''));
+  }
+
+  // Difficulty
+  const diffMatch = md.match(/(easy|moderate|hard|difficult|expert|intermediate)/i);
+  if (diffMatch) trail.difficulty = diffMatch[1].charAt(0).toUpperCase() + diffMatch[1].slice(1).toLowerCase();
+
+  // Route type
+  const rtMatch = md.match(/(out\s*&\s*back|out\s*and\s*back|loop|point\s*to\s*point|point-to-point)/i);
+  if (rtMatch) trail.route_type = rtMatch[1];
+
+  // Description (first substantive paragraph)
+  const paraMatch = md.match(/\n\n([^#\n]{50,500})\n\n/);
+  if (paraMatch) trail.description = paraMatch[1].trim();
+
+  // Location
+  const locMatch = md.match(/(?:near|location|region|area)[:\s]+([A-Za-z\s,]+?)(?:\n|$)/i);
+  if (locMatch) trail.location = locMatch[1].trim();
+
+  return trail;
+}
+
+// ========== Firecrawl scrape for rich metadata ==========
+async function scrapeAllTrails(url) {
   const res = await fetch(`${FIRECRAWL_BASE}/scrape`, {
     method: 'POST',
     headers: {
@@ -151,188 +107,160 @@ async function firecrawlScrape(url) {
     },
     body: JSON.stringify({
       url,
-      formats: ['markdown', 'rawHtml'],
-      onlyMainContent: false
+      formats: ['markdown'],
+      onlyMainContent: true,
+      waitFor: 3000
     })
   });
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Firecrawl scrape failed (${res.status}): ${err}`);
-  }
+  if (!res.ok) throw new Error(`Firecrawl scrape failed (${res.status})`);
   return res.json();
 }
 
-// ========== Firecrawl LLM extract (for structured metadata) ==========
-async function firecrawlExtract(url) {
-  const schema = {
-    type: 'object',
-    properties: {
-      name: { type: 'string' },
-      difficulty: { type: 'string' },
-      length_miles: { type: 'number' },
-      elevation_gain_ft: { type: 'number' },
-      rating: { type: 'number' },
-      route_type: { type: 'string' },
-      description: { type: 'string' },
-      duration_hours: { type: 'number' },
-      location: { type: 'string' }
-    }
-  };
-
-  const res = await fetch(`${FIRECRAWL_BASE}/extract`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${FIRECRAWL_API_KEY}`
-    },
-    body: JSON.stringify({
-      urls: [url],
-      prompt: 'Extract hiking trail information from this AllTrails page. Include all metadata about the trail.',
-      schema,
-      enableWebSearch: false
-    })
-  });
-  if (!res.ok) {
-    const err = await res.text();
-    console.warn(`Firecrawl extract failed (${res.status}): ${err}`);
-    return null;
+// ========== OSM Overpass for trail geometry ==========
+async function queryOverpass(trailName, centerLat = null, centerLng = null) {
+  // Build bounding box or location-based search
+  let bboxFilter = '';
+  if (centerLat && centerLng) {
+    const d = 0.15;
+    bboxFilter = `(${centerLat - d},${centerLng - d},${centerLat + d},${centerLng + d})`;
   }
-  const result = await res.json();
-  return result?.data?.extracted || result?.data || null;
-}
 
-// ========== OSM Overpass fallback ==========
-async function searchOverpass(name, lat, lng) {
-  const query = `[out:json];(way["name"~"${name.replace(/['"]/g, '').substring(0, 30)}"](around:5000,${lat},${lng});relation["route"="hiking"]["name"~"${name.replace(/['"]/g, '').substring(0, 30)}"](around:5000,${lat},${lng}););out geom;`;
-  try {
-    const res = await fetch('https://overpass-api.de/api/interpreter', {
-      method: 'POST',
-      body: `data=${encodeURIComponent(query)}`,
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-    });
-    const data = await res.json();
-    if (!data.elements?.length) return null;
-    const el = data.elements[0];
-    const coords = el.geometry ? el.geometry.map(p => [p.lat, p.lon]) : [];
-    return {
-      name: el.tags?.name || name,
-      geometry: coords,
-      metadata: {
-        difficulty: el.tags?.difficulty || null,
-        length_mi: el.tags?.length ? (parseFloat(el.tags.length) * 0.62137).toFixed(1) : null,
-        source: 'OpenStreetMap'
+  const name = trailName.replace(/['"]/g, '').substring(0, 40);
+  const queries = [
+    // Try exact name match on hiking relations
+    `[out:json][timeout:15];(relation["route"="hiking"]["name"="${name}"]${bboxFilter};way["name"="${name}"]["highway"="path"](if:length()>200)${bboxFilter};);out geom;`,
+    // Try fuzzy match
+    `[out:json][timeout:15];(relation["route"="hiking"]["name"~"${name}"i]${bboxFilter};way["name"~"${name}"i]["highway"="path"](if:length()>200)${bboxFilter};);out geom;`,
+    // Try name contains (without trailing words like "Trail")
+    `[out:json][timeout:15];(way["name"~"${name.substring(0, 20)}"i]["highway"="path"](if:length()>200)${bboxFilter};);out geom;`,
+  ];
+
+  for (const query of queries) {
+    try {
+      const res = await fetch('https://overpass-api.de/api/interpreter', {
+        method: 'POST',
+        body: `data=${encodeURIComponent(query)}`,
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
+      const data = await res.json();
+      if (!data.elements?.length) continue;
+
+      // Pick the longest trail (most coordinates = most likely the right one)
+      let best = null, bestLen = 0;
+      for (const el of data.elements) {
+        const coords = el.geometry ? el.geometry.map(p => [p.lat, p.lon]) : [];
+        if (coords.length > bestLen) {
+          bestLen = coords.length;
+          best = { coords, tags: el.tags || {}, id: el.id };
+        }
       }
-    };
-  } catch (err) {
-    console.error('Overpass query failed:', err.message);
-    return null;
+      if (best && bestLen > 5) return best;
+    } catch (err) {
+      console.warn('Overpass query failed:', err.message);
+    }
   }
+  return null;
 }
 
-// ========== Main Handler ==========
+// ========== Main handler ==========
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const { url, name, lat, lng } = req.query;
-
-  // ── Mode 1: Resolve by AllTrails URL ─────────────────────
-  if (url) {
-    const slug = extractSlug(url);
-    if (!slug) {
-      return res.status(400).json({ error: 'Could not extract trail slug from URL' });
-    }
-
-    let trailData = null;
-
-    // Step 1: Firecrawl scrape for __NEXT_DATA__
-    try {
-      const scrape = await firecrawlScrape(url);
-      if (scrape?.data?.rawHtml) {
-        const html = scrape.data.rawHtml;
-
-        // Find __NEXT_DATA__
-        const nextDataMatch = html.match(/<script id="__NEXT_DATA__"[^>]*type="application\/json"[^>]*>([\s\S]*?)<\/script>/);
-        if (nextDataMatch?.[1]) {
-          trailData = extractFromNextData(nextDataMatch[1]);
-        }
-
-        // If no geometry yet, search for embedded GeoJSON/GPX in HTML
-        if (!trailData?.geometry) {
-          // Try finding AllTrails internal state JSON
-          const stateMatch = html.match(/window\.__INITIAL_STATE__\s*=\s*({[\s\S]*?});/);
-          if (stateMatch?.[1]) {
-            trailData = extractFromNextData(stateMatch[1]) || trailData;
-          }
-        }
-
-        // Try to find GPX export URL in the page
-        if (!trailData?.geometry) {
-          const exportMatch = html.match(/\/trail\/[^"']+\/export\?format=gpx/i);
-          if (exportMatch) {
-            try {
-              const gpxUrl = `https://www.alltrails.com${exportMatch[0]}`;
-              const gpxRes = await fetch(gpxUrl, {
-                headers: { 'User-Agent': 'Mozilla/5.0' }
-              });
-              if (gpxRes.ok) {
-                const gpxText = await gpxRes.text();
-                const trkpts = [...gpxText.matchAll(/<trkpt\s+lat="([^"]+)"\s+lon="([^"]+)">/g)];
-                if (trkpts.length > 0) {
-                  trailData = trailData || { name: slug.replace(/-/g, ' ') };
-                  trailData.geometry = trkpts.map(t => [parseFloat(t[1]), parseFloat(t[2])]);
-                }
-              }
-            } catch {}
-          }
-        }
-      }
-
-      // Step 2: Use Firecrawl LLM extraction for rich metadata
-      if (scrape && !trailData?.metadata?.rating) {
-        try {
-          const extracted = await firecrawlExtract(url);
-          if (extracted) {
-            trailData = trailData || { name: extracted.name };
-            trailData.metadata = {
-              ...(trailData.metadata || {}),
-              ...extracted
-            };
-          }
-        } catch {}
-      }
-    } catch (err) {
-      console.error('Firecrawl flow failed:', err.message);
-    }
-
-    if (!trailData) {
-      return res.status(404).json({
-        error: 'Could not extract trail data',
-        note: 'Firecrawl may have been rate-limited or the page requires authentication'
-      });
-    }
-
-    return res.json({
-      source: 'alltrails',
-      trail: trailData,
-      trail_url: url,
-      slug
+  const { url } = req.query;
+  if (!url) {
+    return res.status(400).json({
+      error: 'Provide ?url= with an AllTrails trail URL',
+      example: '/api/alltrails?url=https://www.alltrails.com/trail/us/california/little-lakes-valley-to-gem-lakes'
     });
   }
 
-  // ── Mode 2: Search by name + location (OSM Overpass) ────
-  if (name && lat && lng) {
-    const result = await searchOverpass(name, parseFloat(lat), parseFloat(lng));
-    if (!result) {
-      return res.status(404).json({ error: 'Trail not found in OpenStreetMap' });
+  const slug = extractSlug(url);
+  if (!slug) return res.status(400).json({ error: 'Invalid AllTrails URL format' });
+
+  const nameFallback = slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+  // Stage 1: Firecrawl scrape for rich metadata
+  let metadata = null;
+  let markdown = '';
+  try {
+    const scrape = await scrapeAllTrails(url);
+    markdown = scrape?.data?.markdown || '';
+    if (markdown) {
+      metadata = parseMarkdownForTrail(markdown, nameFallback);
     }
-    return res.json({ source: 'osm', trail: result });
+  } catch (err) {
+    console.error('Firecrawl scrape failed:', err.message);
   }
 
-  return res.status(400).json({
-    error: 'Provide ?url= (AllTrails URL) or ?name=&lat=&lng= (OSM search)',
-    example: '/api/alltrails?url=https://www.alltrails.com/trail/us/california/little-lakes-valley-to-gem-lakes'
+  // If Firecrawl failed, use basic metadata from the URL slug
+  if (!metadata) {
+    metadata = {
+      name: nameFallback,
+      difficulty: null, length_mi: null, elevation_gain_ft: null,
+      rating: null, route_type: null, description: null, location: null
+    };
+  }
+
+  // Stage 2: OSM Overpass for trail geometry
+  let geometry = null;
+  let osmTags = null;
+  try {
+    // Try with known California Eastern Sierra coordinates
+    const centerMatch = markdown.match(/[-]?\d+\.\d+,\s*[-]?\d+\.\d+/);
+    let lat = 37.44, lng = -118.73; // Default: Eastern Sierra
+    if (centerMatch) {
+      const parts = centerMatch[0].split(',').map(Number);
+      if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+        lat = parts[0]; lng = parts[1];
+      }
+    }
+    const osmResult = await queryOverpass(metadata.name, lat, lng);
+    if (osmResult) {
+      geometry = osmResult.coords;
+      osmTags = osmResult.tags;
+
+      // Enrich metadata from OSM tags
+      if (!metadata.length_mi && osmTags.length) {
+        const km = parseFloat(osmTags.length);
+        if (!isNaN(km)) metadata.length_mi = (km * 0.62137).toFixed(1);
+      }
+      if (!metadata.difficulty && osmTags.sac_scale) {
+        metadata.difficulty = osmTags.sac_scale;
+      }
+    }
+  } catch (err) {
+    console.error('OSM Overpass failed:', err.message);
+  }
+
+  // Stage 3: Build response
+  const trail = {
+    name: metadata.name,
+    geometry,
+    metadata: {
+      difficulty: metadata.difficulty,
+      length_mi: metadata.length_mi,
+      elevation_gain_ft: metadata.elevation_gain_ft,
+      rating: metadata.rating,
+      route_type: metadata.route_type,
+      description: metadata.description,
+      location: metadata.location
+    }
+  };
+
+  // Clean up nulls
+  Object.keys(trail.metadata).forEach(k => {
+    if (trail.metadata[k] === null) delete trail.metadata[k];
+  });
+
+  return res.json({
+    source: geometry ? 'alltrails+osm' : 'alltrails',
+    trail,
+    trail_url: url,
+    slug,
+    has_geometry: !!geometry,
+    geometry_source: geometry ? 'osm' : 'none'
   });
 }
